@@ -52,6 +52,7 @@ import { SettingsManager } from './src/ui/settingsManager.js';
 import { ConfigManager } from './src/infrastructure/ConfigManager.js';
 import { updateChatSettings } from './src/ui/components/ChatSettings.js';
 import { renderTagRulesUI } from './src/ui/components/TagRulesEditor.js';
+import { tagPresetManager } from './src/ui/components/TagPresetManager.js';
 import { updateTaskList } from './src/ui/components/TaskList.js';
 import { updateFileList } from './src/ui/components/FileList.js';
 import { updateWorldInfoList } from './src/ui/components/WorldInfoList.js';
@@ -306,6 +307,11 @@ let rerankService = null;
 let lastNotificationTime = 0;
 const NOTIFICATION_COOLDOWN = 5000; // 5秒冷却时间
 let lastRerankNotifyTime = 0;
+
+// 防重复查询机制
+let isQuerying = false;          // 并发锁：同一时刻只能有一个查询
+let lastQueryCompleteTime = 0;   // 查询完成时间戳：防串行重复调用
+const QUERY_COOLDOWN = 3000;     // 查询冷却：3秒内不重复执行
 
 // 向量化状态管理
 let isVectorizing = false;
@@ -662,11 +668,11 @@ async function getVectorizableContent(contentSettings = null) {
 
         const messages = getMessages(context.chat, messageOptions);
 
+        const applyTagsToFirstMessage = chatSettings.apply_tags_to_first_message || false;
         messages.forEach(msg => {
             let extractedText;
-            // 检查是否为首楼（index === 0）或用户楼层（msg.is_user === true）
-            if (msg.index === 0 || msg.is_user === true) {
-                // 首楼或用户楼层：使用完整的原始文本，不应用标签提取规则
+            // 首楼不应用标签提取（除非用户勾选），用户楼层始终不提取
+            if ((msg.index === 0 && !applyTagsToFirstMessage) || msg.is_user === true) {
                 extractedText = msg.text;
             } else {
                 // 其他楼层：应用标签提取规则
@@ -2480,12 +2486,27 @@ async function rearrangeChat(chat, contextSize, abort, type) {
     }
   };
 
+  // 防重复：quiet 提前返回，避免 finally 误设冷却
+  if (type === 'quiet') {
+    console.debug('Vectors: Skipping quiet prompt');
+    logTimingAndReturn('quiet模式');
+    return;
+  }
+  // 并发锁：同一时刻只允许一个查询
+  if (isQuerying) {
+    console.debug('Vectors: Query already in progress, skipping duplicate call');
+    logTimingAndReturn('已有查询进行中');
+    return;
+  }
+  // 完成冷却：查询完成后 3 秒内不重复执行
+  if (performance.now() - lastQueryCompleteTime < QUERY_COOLDOWN) {
+    console.debug('Vectors: Query cooldown active, skipping duplicate call');
+    logTimingAndReturn('查询冷却中');
+    return;
+  }
+
   try {
-    if (type === 'quiet') {
-      console.debug('Vectors: Skipping quiet prompt');
-      // quiet 模式不需要计时
-      return;
-    }
+    isQuerying = true;
 
     setExtensionPrompt(
       EXTENSION_PROMPT_TAG,
@@ -2999,6 +3020,9 @@ async function rearrangeChat(chat, contextSize, abort, type) {
   } catch (error) {
     console.error('Vectors: Failed to rearrange chat', error);
     logTimingAndReturn('执行出错', true);
+  } finally {
+    isQuerying = false;
+    lastQueryCompleteTime = performance.now();
   }
 }
 
@@ -3588,6 +3612,8 @@ jQuery(async () => {
   await settingsManager.initializeTaskList();
 
   // 初始化标签规则UI
+  // 建立 TagPresetManager ↔ local settings 双向同步（修复双对象覆盖bug）
+  tagPresetManager.setLocalSettings(settings);
   renderTagRulesUI();
 
   // 初始化隐藏消息信息

@@ -1,0 +1,987 @@
+<!-- Vectors Enhanced - Modular Settings Template -->
+<div id="vectors_enhanced_container" class="inline-drawer">
+  <div class="inline-drawer-toggle inline-drawer-header">
+    <b>聊天记录超级管理器</b>
+    <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+  </div>
+  <div class="inline-drawer-content">
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="src/ui/styles/components.css">
+
+    <!-- Master Switch -->
+    <div class="vectors-enhanced-section" style="padding-bottom: 0.5rem; border-bottom: 2px solid var(--SmartThemeQuoteColor)">
+      <label class="checkbox_label" for="vectors_enhanced_master_enabled" title="启用/禁用整个插件的所有功能。禁用时，所有向量化和查询功能都将停止工作。">
+        <input id="vectors_enhanced_master_enabled" type="checkbox" />
+        <span style="font-weight: bold; color: var(--SmartThemeQuoteColor)">启用聊天记录超级管理器</span>
+      </label>
+      <small style="display: block; margin-top: 0.25rem; color: var(--SmartThemeEmColor)">
+        关闭此开关将禁用插件的所有功能，包括向量化、查询和任务管理
+      </small>
+    </div>
+
+    <!-- Content Selection -->
+    <div id="vectors_enhanced_content_settings" class="vectors-enhanced-section">
+      <details>
+        <summary><strong>内容选择</strong></summary>
+
+      <!-- Chat Messages -->
+      <div class="content-type-section">
+        <label class="checkbox_label" for="vectors_enhanced_chat_enabled">
+          <input id="vectors_enhanced_chat_enabled" type="checkbox" />
+          <span>聊天消息</span>
+        </label>
+
+        <div id="vectors_enhanced_chat_settings" class="content-settings">
+          <div class="flex-container">
+            <div class="flex1">
+              <label for="vectors_enhanced_chat_start">
+                <small>从消息 #</small>
+              </label>
+              <input id="vectors_enhanced_chat_start" type="number" class="text_pole vectors-range-input" min="0" value="0" />
+            </div>
+            <div class="flex1">
+              <label for="vectors_enhanced_chat_end">
+                <small>到消息 # (-1 表示最后)</small>
+              </label>
+              <input id="vectors_enhanced_chat_end" type="number" class="text_pole vectors-range-input" value="-1" />
+            </div>
+          </div>
+
+          <div class="flex-container flexFlowColumn m-t-0-5">
+            <label>
+              <small>消息类型</small>
+            </label>
+            <label class="checkbox_label">
+              <input id="vectors_enhanced_chat_user" type="checkbox" checked />
+              <span>用户消息</span>
+            </label>
+            <label class="checkbox_label">
+              <input id="vectors_enhanced_chat_assistant" type="checkbox" checked />
+              <span>AI消息</span>
+            </label>
+            <label class="checkbox_label">
+              <input id="vectors_enhanced_chat_include_hidden" type="checkbox" />
+              <span>包含隐藏消息</span>
+            </label>
+          </div>
+
+          <!-- Hidden Message Management -->
+          <div class="flex-container flexFlowColumn m-t-1 vectors-hidden-message-section">
+            <label class="vectors-enhanced-subsection-title">
+              <small>隐藏消息管理</small>
+            </label>
+
+            <small class="text-muted margin-bottom-10px">勾选"包含隐藏消息"后，隐藏的消息也会被包含在向量化中</small>
+
+            <div class="flex-container m-t-0-5">
+              <button id="vectors_enhanced_hide_range" class="menu_button menu_button_icon" title="隐藏选定范围的消息">
+                <i class="fa-solid fa-eye-slash"></i>
+                <span>隐藏消息</span>
+              </button>
+              <button id="vectors_enhanced_unhide_range" class="menu_button menu_button_icon" title="显示选定范围的消息">
+                <i class="fa-solid fa-eye"></i>
+                <span>显示消息</span>
+              </button>
+              <button id="vectors_enhanced_show_hidden" class="menu_button menu_button_icon" title="查看当前隐藏的消息">
+                <i class="fa-solid fa-list"></i>
+                <span>查看隐藏</span>
+              </button>
+            </div>
+
+            <div id="vectors_enhanced_hidden_info" class="vectors-hidden-info">
+              <div class="text-muted">
+                <strong>当前隐藏消息: <span id="vectors_enhanced_hidden_count">0</span></strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tag Extraction Rules -->
+          <div class="flex-container flexFlowColumn m-t-0-5">
+            <div class="flex-container alignItemsCenter">
+              <label class="flex1 vectors-enhanced-subsection-title">
+                <small>标签提取规则</small>
+              </label>
+              <button id="vectors_enhanced_tag_examples" class="menu_button menu_button_icon vectors-tag-examples-btn" title="查看标签提取功能的使用方法和示例">
+                <i class="fa-solid fa-lightbulb"></i>
+                <span>查看示例</span>
+              </button>
+            </div>
+            <!-- 预设管理区域 -->
+            <div class="tag-preset-management m-t-0-5 m-b-0-5">
+              <div class="flex-container alignItemsCenter">
+                <select id="vectors_enhanced_tag_preset_selector" class="text_pole flex1">
+                  <option value="">默认规则</option>
+                </select>
+                <button id="vectors_enhanced_tag_preset_save" class="menu_button menu_button_icon" title="将当前规则保存为预设">
+                  <i class="fa-solid fa-save"></i>
+                </button>
+                <button id="vectors_enhanced_tag_preset_rename" class="menu_button menu_button_icon" title="重命名当前预设" style="display: none;">
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+              </div>
+            </div>
+            <label class="checkbox_label m-t-0-5">
+              <input id="vectors_enhanced_apply_tags_to_first_message" type="checkbox" />
+              <span>对第0层（角色卡）也应用标签提取规则</span>
+            </label>
+            <small class="text-muted" style="display: block; margin-left: 1.5rem; margin-bottom: 0.5rem;">
+              默认情况下，第0层内容会保持完整。启用此选项后，标签提取规则也会应用于第0层。
+            </small>
+            <div id="vectors_enhanced_rules_editor">
+              <!-- Rules editor will be dynamically generated -->
+            </div>
+            <div class="flex-container vectors-tag-actions">
+              <button id="vectors_enhanced_add_rule" class="menu_button menu_button_icon">
+                <i class="fa-solid fa-plus"></i>
+                <span>添加新规则</span>
+              </button>
+              <button id="vectors_enhanced_tag_scanner" class="menu_button menu_button_icon" title="扫描当前选择的内容中存在的标签以作为规则建议">
+                <i class="fa-solid fa-search"></i>
+                <span>扫描标签</span>
+              </button>
+              <button id="vectors_enhanced_exclude_cot" class="menu_button menu_button_icon" title="快速添加一条正则规则，用于排除HTML注释格式的思维链（CoT）">
+                <i class="fa-solid fa-comment-slash"></i>
+                <span>排除小CoT</span>
+              </button>
+              <button id="vectors_enhanced_format_fix" class="menu_button menu_button_icon" title="快速添加一条正则规则，用于修复掉格式问题（删除指定标签之前的所有内容）">
+                <i class="fa-solid fa-wrench"></i>
+                <span>掉格式兼容</span>
+              </button>
+            </div>
+            <div class="flex-container">
+              <small class="text-muted" style="opacity: 0.7; font-size: 0.85em; margin-top: 5px;">
+                注意：按钮用法请查看标签示例！
+              </small>
+            </div>
+
+            <!-- Tag Suggestions -->
+            <div id="vectors_enhanced_tag_suggestions" class="vectors-tag-suggestions">
+              <div class="flex-container alignItemsCenter m-b-0-5">
+                <small class="text-muted flex1">
+                  <strong>发现的标签 (<span id="vectors_tag_scan_stats"></span>):</strong>
+                </small>
+                <button id="vectors_enhanced_clear_suggestions" class="menu_button menu_button_icon fa-solid fa-times" title="清除建议"></button>
+              </div>
+              <div id="vectors_enhanced_tag_list">
+                <!-- Tag suggestions will be dynamically generated -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Content Blacklist -->
+          <div class="flex-container flexFlowColumn m-t-0-5">
+            <label for="vectors_enhanced_content_blacklist" class="vectors-enhanced-subsection-title">
+              <small>内容过滤黑名单（一行一个关键词或短语）</small>
+            </label>
+            <textarea id="vectors_enhanced_content_blacklist" class="text_pole textarea_compact" rows="3" placeholder="Step&#10;思考过程&#10;推理步骤&#10;让我想想"></textarea>
+            <details class="text-muted margin-bottom-10px">
+              <summary><small><strong>黑名单功能</strong></small></summary>
+              <div><small>• 包含这些关键词的提取内容将被跳过</small></div>
+              <div><small>• 支持中英文关键词</small></div>
+              <div><small>• 与排除语法配合使用：先排除子标签，再进行黑名单过滤</small></div>
+              <div><small>处理顺序：提取标签 → 排除子标签 → 黑名单过滤</small></div>
+            </details>
+          </div>
+        </div>
+      </div>
+
+      <!-- Files -->
+      <div class="content-type-section">
+        <label class="checkbox_label" for="vectors_enhanced_files_enabled">
+          <input id="vectors_enhanced_files_enabled" type="checkbox" />
+          <span>文件</span>
+        </label>
+
+        <div id="vectors_enhanced_files_settings" class="content-settings">
+          <div id="vectors_enhanced_files_list" class="file-list">
+            <!-- File list will be dynamically populated -->
+          </div>
+          <button id="vectors_enhanced_files_refresh" class="menu_button">
+            <i class="fa-solid fa-refresh"></i>
+            <span>刷新文件列表</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- World Info -->
+      <div class="content-type-section">
+        <label class="checkbox_label" for="vectors_enhanced_wi_enabled">
+          <input id="vectors_enhanced_wi_enabled" type="checkbox" />
+          <span>世界信息</span>
+        </label>
+
+        <div id="vectors_enhanced_wi_settings" class="content-settings">
+          <div id="vectors_enhanced_wi_list" class="wi-list">
+            <!-- World info entries will be dynamically populated -->
+          </div>
+          <button id="vectors_enhanced_wi_refresh" class="menu_button">
+            <i class="fa-solid fa-refresh"></i>
+            <span>刷新世界信息</span>
+          </button>
+        </div>
+      </div>
+      </details>
+    </div>
+
+    <!-- Summary Settings -->
+    <div id="vectors_enhanced_memory" class="vectors-enhanced-section">
+      <details>
+        <summary><strong>总结设置</strong></summary>
+        <div style="padding: 10px;">
+
+          <!-- Chat Floor Monitor (Hidden) -->
+          <div class="chat-floor-monitor" style="display: none;">
+            <span id="memory_chat_floor_count">正在加载...</span>
+          </div>
+
+          <!-- API Configuration Section -->
+          <details style="margin-top: 10px;">
+            <summary><strong>API配置</strong></summary>
+            <div class="memory-api-section" style="margin-top: 10px;">
+              <label for="memory_api_source">
+                <small>API 选择:</small>
+              </label>
+              <select id="memory_api_source" class="text_pole" style="width: 100%;">
+                <option value="openai_compatible">OpenAI兼容格式</option>
+                <option value="google_openai" selected>Google</option>
+              </select>
+
+              <!-- OpenAI Compatible Settings -->
+              <div id="memory_openai_settings" style="margin-top: 10px; display: none;">
+                <label for="memory_openai_url">
+                  <small>API端点URL:</small>
+                </label>
+                <input id="memory_openai_url"
+                       type="text"
+                       class="text_pole"
+                       placeholder="https://api.openai.com/v1"
+                       style="width: 100%;" />
+
+                <label for="memory_openai_api_key" style="margin-top: 5px;">
+                  <small>API Key:</small>
+                </label>
+                <input id="memory_openai_api_key"
+                       type="password"
+                       class="text_pole"
+                       placeholder="sk-..."
+                       style="width: 100%;" />
+
+                <label for="memory_openai_model" style="margin-top: 5px;">
+                  <small>模型名称:</small>
+                </label>
+                <div style="display: flex; gap: 5px; align-items: center;">
+                  <select id="memory_openai_model" class="text_pole" style="flex: 1;">
+                    <option value="">-- 请先刷新模型列表 --</option>
+                  </select>
+                  <button id="memory_openai_refresh_models"
+                          class="menu_button menu_button_icon"
+                          title="刷新模型列表"
+                          style="padding: 5px 10px; height: auto; min-height: unset;">
+                    <i class="fa-solid fa-sync"></i>
+                  </button>
+                </div>
+                <div style="display: flex; gap: 5px; align-items: center; margin-top: 5px;">
+                  <input type="checkbox" id="memory_openai_custom_model_enabled" title="勾选后使用手动输入的模型名" />
+                  <input id="memory_openai_custom_model"
+                         type="text"
+                         class="text_pole"
+                         placeholder="手动输入模型名（勾选启用）"
+                         style="flex: 1;"
+                         disabled />
+                </div>
+
+                <small class="hint" style="display: block; margin-top: 10px; color: #888;">
+                  提示：请求将通过酒馆后端代理转发，避免CORS跨域问题
+                </small>
+              </div>
+
+              <!-- Google to OpenAI Settings -->
+              <div id="memory_google_openai_settings" style="margin-top: 10px; display: none;">
+                <label for="memory_google_openai_api_key">
+                  <small>Google API Key:</small>
+                </label>
+                <input id="memory_google_openai_api_key"
+                       type="password"
+                       class="text_pole"
+                       placeholder="输入你的Google API Key"
+                       style="width: 100%;" />
+
+                <label for="memory_google_openai_model" style="margin-top: 5px;">
+                  <small>模型名称:</small>
+                </label>
+                <div style="display: flex; gap: 5px; align-items: center;">
+                  <select id="memory_google_openai_model" class="text_pole" style="flex: 1;">
+                    <option value="">-- 请先刷新模型列表 --</option>
+                  </select>
+                  <button id="memory_google_refresh_models"
+                          type="button"
+                          class="menu_button menu_button_icon"
+                          title="刷新模型列表"
+                          style="padding: 5px 10px; height: auto; min-height: unset;">
+                    <i class="fa-solid fa-sync"></i>
+                  </button>
+                </div>
+                <div style="display: flex; gap: 5px; align-items: center; margin-top: 5px;">
+                  <input type="checkbox" id="memory_google_custom_model_enabled" title="勾选后使用手动输入的模型名" />
+                  <input id="memory_google_custom_model"
+                         type="text"
+                         class="text_pole"
+                         placeholder="手动输入模型名（勾选启用）"
+                         style="flex: 1;"
+                         disabled />
+                </div>
+              </div>
+            </div>
+          </details>
+
+
+          <!-- Prompts Section (collapsible) -->
+
+          <!-- Summary Format -->
+          <div class="memory-summary-format" style="margin-top: 10px;">
+            <label for="memory_summary_format">
+              <small>总结格式模板:</small>
+              <button id="reset_memory_summary_format" 
+                      class="menu_button menu_button_icon" 
+                      title="重置为默认值"
+                      style="float: right; padding: 2px 8px; font-size: 11px; height: auto; min-height: unset;">
+                <i class="fa-solid fa-undo"></i> 重置
+              </button>
+            </label>
+            <textarea id="memory_summary_format"
+                      class="text_pole"
+                      rows="10"
+                      style="width: 100%; font-family: monospace; font-size: 12px;"
+                      placeholder="输入自定义的总结格式..."></textarea>
+          </div>
+          
+          <!-- Detail Level Dropdown -->
+          <div class="memory-detail-level" style="margin-top: 10px;">
+            <label for="memory_detail_level">
+              <small>总结详细程度:</small>
+              <small style="opacity: 0.7; margin-left: 5px;">(需要在模板里保留{{length}})</small>
+            </label>
+            <select id="memory_detail_level" class="text_pole" style="width: 100%;">
+              <option value="concise">简洁 - 每个事件不少于3句话，100字</option>
+              <option value="normal">正常 - 每个事件不少于5句话，150字</option>
+              <option value="detailed">详细 - 每个事件不少于7句话，250字</option>
+            </select>
+          </div>
+          
+          <!-- Max Tokens Input -->
+          <div class="memory-max-tokens" style="margin-top: 10px;">
+            <label for="memory_max_tokens">
+              <small>最大输出 Token 数:</small>
+            </label>
+            <input id="memory_max_tokens" 
+                   type="number" 
+                   class="text_pole" 
+                   style="width: 100%;" 
+                   min="0" 
+                   max="100000" 
+                   step="1"
+                   placeholder="8192">
+          </div>
+          
+          <!-- Auto Create World Book Checkbox -->
+          <div class="memory-auto-create-wb" style="margin-top: 10px;">
+            <label class="checkbox_label" for="memory_auto_create_world_book" title="总结后自动创建世界书并绑定到对话">
+              <input id="memory_auto_create_world_book" type="checkbox" />
+              <span>
+                <small>总结后自动创建世界书</small>
+              </span>
+            </label>
+          </div>
+
+          <!-- Current World Book Display and Rename -->
+          <div class="memory-worldbook-management" style="margin-top: 10px; padding: 8px; border: 1px solid var(--SmartThemeBorderColor); border-radius: 5px;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span style="font-size: 0.9em; color: var(--SmartThemeQuoteColor);">
+                <i class="fa-solid fa-book"></i> 当前世界书:
+              </span>
+              <span id="memory_current_worldbook_name" style="font-weight: bold; flex: 1; min-width: 100px;">(未绑定)</span>
+              <button id="memory_worldbook_rename_btn" type="button" class="menu_button menu_button_icon" title="重命名当前世界书" disabled>
+                <i class="fa-solid fa-pen"></i>
+                <span>重命名</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Auto-Summarize Settings -->
+          <div class="memory-auto-summarize-section" style="margin-top: 15px;">
+            <label class="checkbox_label" for="memory_auto_summarize_enabled" title="启用自动总结功能">
+              <input id="memory_auto_summarize_enabled" type="checkbox" />
+              <span style="font-weight: bold;">
+                <i class="fa-solid fa-magic"></i> 启用自动总结
+              </span>
+            </label>
+
+            <div id="memory_auto_summarize_settings" style="margin-left: 1.5rem; margin-top: 10px; display: none;">
+              <div class="flex-container" style="gap: 10px; align-items: center;">
+                <div style="flex: 1;">
+                  <label for="memory_auto_summarize_interval">
+                    <small>每隔多少层自动总结:</small>
+                  </label>
+                  <input id="memory_auto_summarize_interval"
+                         type="number"
+                         class="text_pole"
+                         min="1"
+                         max="200"
+                         value="20"
+                         style="width: 100%;" />
+                </div>
+                <div style="flex: 1;">
+                  <label for="memory_auto_summarize_count">
+                    <small>保留最近多少层:</small>
+                  </label>
+                  <input id="memory_auto_summarize_count"
+                         type="number"
+                         class="text_pole"
+                         min="1"
+                         max="100"
+                         value="6"
+                         style="width: 100%;" />
+                </div>
+              </div>
+
+              <!-- Auto-Summarize Status -->
+              <div id="memory_auto_summarize_status" style="margin-top: 8px; display: none;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <small style="color: var(--SmartThemeEmColor);">
+                    下次自动总结楼层: <span id="memory_next_auto_summarize_floor">-</span>
+                  </small>
+                  <button id="memory_reset_auto_summarize" class="menu_button"
+                          style="padding: 2px 8px; font-size: 12px; width: fit-content;"
+                          title="重置自动总结基准点为当前楼层">
+                    <i class="fa fa-refresh"></i> 重置
+                  </button>
+                </div>
+              </div>
+
+              <div style="margin-top: 8px;">
+                <small style="color: var(--SmartThemeEmColor);">当达到设定楼层时，保留最近N层消息，总结其余所有内容（不包含最新回复）</small>
+              </div>
+            </div>
+          </div>
+
+
+          <!-- Hide Floors After Summary -->
+          <div style="margin-top: 15px; margin-bottom: 10px;">
+            <label class="checkbox_label" for="memory_hide_floors_after_summary" title="总结成功后自动隐藏被总结的楼层">
+              <input id="memory_hide_floors_after_summary" type="checkbox" />
+              <span>
+                <i class="fa-solid fa-eye-slash"></i> 总结时隐藏楼层
+              </span>
+            </label>
+            <div style="margin-left: 1.5rem; margin-top: 5px;">
+              <small style="color: var(--SmartThemeEmColor);">总结成功后自动隐藏被总结的楼层（包括范围内的用户消息）</small>
+            </div>
+          </div>
+
+          <!-- Disable World Info After Vectorization -->
+          <div style="margin-bottom: 10px;">
+            <label class="checkbox_label" for="memory_disable_world_info_after_vectorize" title="向量化成功后自动禁用世界书的所有条目">
+              <input id="memory_disable_world_info_after_vectorize" type="checkbox" />
+              <span>
+                <i class="fa-solid fa-ban"></i> 向量化后禁用世界书条目
+              </span>
+            </label>
+            <div style="margin-left: 1.5rem; margin-top: 5px;">
+              <small style="color: var(--SmartThemeEmColor);">向量化成功后自动禁用该世界书的所有条目</small>
+            </div>
+          </div>
+
+          <!-- Vectorize Summary Button -->
+          <button id="memory_vectorize_summary"
+                  class="menu_button menu_button_icon"
+                  title="向量化当前聊天的总结内容"
+                  style="width: 100%;">
+            <i class="fa-solid fa-vector-square"></i>
+            <span>向量化总结</span>
+          </button>
+
+          <!-- Output Area -->
+          <div class="memory-output-section" style="margin-top: 15px;">
+            <label for="memory_output">
+              <small>AI回复:</small>
+            </label>
+            <textarea id="memory_output"
+                     class="text_pole"
+                     rows="6"
+                     readonly
+                     placeholder="AI的回复将显示在这里..."
+                     style="width: 100%; resize: vertical; background-color: var(--black30a);"></textarea>
+          </div>
+
+          <!-- Loading Indicator -->
+          <div id="memory_loading"
+               style="display: none; text-align: center; margin-top: 10px;">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            <span style="margin-left: 5px;">正在处理...</span>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <!-- Vectorization & Injection Settings -->
+    <div id="vectors_enhanced_vectorization_settings" class="vectors-enhanced-section">
+      <details>
+        <summary><strong>向量化设置</strong></summary>
+
+        <!-- Source Selection -->
+        <div class="flex-container flexFlowColumn">
+          <label for="vectors_enhanced_source">向量化源</label>
+          <select id="vectors_enhanced_source" class="text_pole">
+            <option value="transformers">Transformers (本地)</option>
+            <option value="vllm">vLLM</option>
+            <option value="ollama">Ollama</option>
+            <option value="webllm">WebLLM (本地)</option>
+            <option value="koboldcpp">KoboldCpp</option>
+          </select>
+        </div>
+
+        <!-- Transformers Settings -->
+        <div id="vectors_enhanced_transformers_settings" class="vectors-source-settings">
+          <div class="flex-container flexFlowColumn">
+            <label for="vectors_enhanced_local_model">本地模型</label>
+            <input id="vectors_enhanced_local_model" class="text_pole" type="text" placeholder="Xenova/all-MiniLM-L6-v2" />
+          </div>
+        </div>
+
+        <!-- vLLM Settings -->
+        <div id="vectors_enhanced_vllm_settings" class="vectors-source-settings vectors-vllm-settings">
+          <div class="flex-container flexFlowColumn">
+            <label for="vectors_enhanced_vllm_url">vLLM API 地址</label>
+            <input id="vectors_enhanced_vllm_url" class="text_pole" type="text" placeholder="http://127.0.0.1:8000" />
+          </div>
+          <div class="flex-container flexFlowColumn">
+            <label for="vectors_enhanced_vllm_model">vLLM 模型名称</label>
+            <input id="vectors_enhanced_vllm_model" class="text_pole" type="text" placeholder="BAAI/bge-large-zh-v1.5" />
+          </div>
+          <div class="flex-container flexFlowColumn">
+            <label for="vectors_enhanced_vllm_api_key">
+              vLLM API Key
+              <small style="opacity: 0.7; display: block; margin-top: 0.25rem;">
+                <i class="fa-solid fa-info-circle"></i> 留空时将使用文本生成设置中的 vLLM API key
+              </small>
+            </label>
+            <input id="vectors_enhanced_vllm_api_key" class="text_pole" type="password" placeholder="可选 - 优先使用文本生成设置" />
+          </div>
+        </div>
+
+        <!-- Ollama Settings -->
+        <div id="vectors_enhanced_ollama_settings" class="vectors-source-settings vectors-ollama-settings">
+          <div class="flex-container flexFlowColumn">
+            <label for="vectors_enhanced_ollama_url">Ollama API 地址</label>
+            <input id="vectors_enhanced_ollama_url" class="text_pole" type="text" placeholder="http://localhost:11434" />
+          </div>
+          <div class="flex-container flexFlowColumn">
+            <label for="vectors_enhanced_ollama_model">Ollama 模型名称</label>
+            <input id="vectors_enhanced_ollama_model" class="text_pole" type="text" placeholder="rjmalagon/gte-qwen2-1.5b-instruct-embed-f16" />
+          </div>
+          <label class="checkbox_label" for="vectors_enhanced_ollama_keep">
+            <input id="vectors_enhanced_ollama_keep" type="checkbox" />
+            <span>保持模型在内存中</span>
+          </label>
+        </div>
+
+        <!-- General Parameters -->
+        <div class="flex-container m-t-1">
+          <div class="flex1" title="向量化的文本块大小">
+            <label for="vectors_enhanced_chunk_size">
+              <small>块大小</small>
+            </label>
+            <input id="vectors_enhanced_chunk_size" type="number" class="text_pole" min="100" max="10000" />
+          </div>
+          <div class="flex1" title="块之间的重叠百分比">
+            <label for="vectors_enhanced_overlap_percent">
+              <small>重叠 %</small>
+            </label>
+            <input id="vectors_enhanced_overlap_percent" type="number" class="text_pole" min="0" max="50" />
+          </div>
+          <div class="flex1" title="检索的最小相似度分数">
+            <label for="vectors_enhanced_score_threshold">
+              <small>分数阈值</small>
+            </label>
+            <input id="vectors_enhanced_score_threshold" type="number" class="text_pole" min="0" max="1" step="0.05" />
+          </div>
+        </div>
+
+        <div class="flex-container flexFlowColumn m-t-0-5">
+          <label for="vectors_enhanced_force_chunk_delimiter" title="块边界的自定义分隔符">
+            <small>自定义块分隔符</small>
+          </label>
+          <input id="vectors_enhanced_force_chunk_delimiter" class="text_pole" type="text" placeholder="（可选）" />
+        </div>
+
+        <!-- TPM Rate Limit Control -->
+        <div class="flex-container flexFlowColumn m-t-1">
+          <label class="checkbox_label" for="vectors_enhanced_batch_delay_enabled" title="启用批次延迟以避免触发 TPM（每分钟 Token 数）限制">
+            <input id="vectors_enhanced_batch_delay_enabled" type="checkbox" />
+            <span>启用 TPM 限制控制</span>
+          </label>
+
+          <div id="vectors_enhanced_batch_delay_settings" style="margin-left: 1.5rem; display: none;">
+            <div class="flex-container m-t-0-5">
+              <div class="flex1" title="处理多少块后触发延迟">
+                <label for="vectors_enhanced_batch_delay_chunks">
+                  <small>延迟触发块数</small>
+                </label>
+                <input id="vectors_enhanced_batch_delay_chunks" type="number" class="text_pole" min="10" max="500" value="50" />
+              </div>
+              <div class="flex1" title="每次延迟的秒数">
+                <label for="vectors_enhanced_batch_delay_seconds">
+                  <small>延迟秒数</small>
+                </label>
+                <input id="vectors_enhanced_batch_delay_seconds" type="number" class="text_pole" min="1" max="300" value="60" />
+              </div>
+            </div>
+            <div id="vectors_enhanced_batch_delay_info" class="m-t-0-5" style="font-size: 0.85em; color: var(--SmartThemeQuoteColor);">
+              <!-- 动态显示估算信息 -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Query Settings -->
+        <div class="flex-container m-t-0-5">
+          <div class="flex1">
+            <label for="vectors_enhanced_query_messages" title="用于向量查询的最近消息数">
+              <small>查询消息数</small>
+            </label>
+            <input id="vectors_enhanced_query_messages" type="number" class="text_pole" min="1" max="10" value="3" />
+          </div>
+          <div class="flex1">
+            <label for="vectors_enhanced_max_results" title="向量查询返回的最大结果数">
+              <small>最大结果数</small>
+            </label>
+            <input id="vectors_enhanced_max_results" type="number" class="text_pole" min="1" max="50" value="10" />
+          </div>
+        </div>
+
+        <!-- Enable Vector Query -->
+        <label class="checkbox_label" for="vectors_enhanced_enabled" title="启用/禁用向量查询功能（已向量化的内容不会受影响）">
+          <input id="vectors_enhanced_enabled" type="checkbox" />
+          <span>启用向量查询</span>
+        </label>
+
+        <!-- Show Query Notification -->
+        <label class="checkbox_label" for="vectors_enhanced_show_query_notification" title="每次向量查询后显示结果统计">
+          <input id="vectors_enhanced_show_query_notification" type="checkbox" />
+          <span>显示查询结果通知</span>
+        </label>
+
+        <!-- Detailed Notification Details -->
+        <div id="vectors_enhanced_notification_details" style="margin-left: 1.5rem; display: none;">
+          <label class="checkbox_label" for="vectors_enhanced_detailed_notification" title="显示各来源的详细分布（聊天记录、文件、世界信息）">
+            <input id="vectors_enhanced_detailed_notification" type="checkbox" />
+            <span>详细模式（显示来源分布）</span>
+          </label>
+        </div>
+
+        <!-- Injection Settings -->
+        <div style="padding: 0 10px;">
+          <details class="m-t-1">
+            <summary><strong>注入设置</strong></summary>
+            <div style="margin-top: 10px;">
+            <!-- Template Presets -->
+            <div class="flex-container flexFlowColumn">
+              <label for="vectors_enhanced_template_preset">模板预设</label>
+              <div class="flex-container" style="gap: 5px;">
+                <select id="vectors_enhanced_template_preset" class="text_pole" style="flex: 1;">
+                  <optgroup label="默认预设">
+                    <option value="style" title="用于导入小说时参考文风">文风参考</option>
+                    <option value="setting" title="用于参考世界观设定">设定参考</option>
+                    <option value="character" title="用于参考人物设定">人设参考</option>
+                    <option value="plot" title="用于体验小说剧情">剧情体验</option>
+                    <option value="context" title="强调是新添加的记录">上下文记录</option>
+                  </optgroup>
+                  <optgroup label="自定义预设" id="vectors_enhanced_custom_presets_group" style="display: none;">
+                  </optgroup>
+                </select>
+                <button id="vectors_enhanced_rename_preset" class="menu_button menu_button_icon" title="重命名自定义模板" style="display: none;">
+                  <i class="fa fa-edit"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="flex-container flexFlowColumn">
+              <label for="vectors_enhanced_template">注入模板</label>
+              <textarea id="vectors_enhanced_template" class="text_pole textarea_compact" rows="3" placeholder="使用 {{text}} 指定检索内容的位置"></textarea>
+            </div>
+
+            <!-- Content Tags -->
+            <div class="flex-container flexFlowColumn m-t-0-5">
+              <label>
+                <small>内容标签（用于区分不同来源的内容）</small>
+              </label>
+              <div class="flex-container">
+                <div class="flex1">
+                  <label for="vectors_enhanced_tag_chat">
+                    <small>聊天记录</small>
+                  </label>
+                  <input id="vectors_enhanced_tag_chat" class="text_pole" type="text" placeholder="past_chat" />
+                </div>
+                <div class="flex1">
+                  <label for="vectors_enhanced_tag_wi">
+                    <small>世界信息</small>
+                  </label>
+                  <input id="vectors_enhanced_tag_wi" class="text_pole" type="text" placeholder="world_part" />
+                </div>
+                <div class="flex1">
+                  <label for="vectors_enhanced_tag_file">
+                    <small>文件</small>
+                  </label>
+                  <input id="vectors_enhanced_tag_file" class="text_pole" type="text" placeholder="databank" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Injection Position -->
+            <label>注入位置</label>
+            <div class="radio_group">
+              <label>
+                <input type="radio" name="vectors_position" value="2" />
+                <span>主提示前</span>
+              </label>
+              <label>
+                <input type="radio" name="vectors_position" value="0" />
+                <span>主提示后</span>
+              </label>
+              <label>
+                <input type="radio" name="vectors_position" value="1" />
+                <span>聊天内@深度</span>
+                <input id="vectors_enhanced_depth" class="text_pole widthUnset vectors-depth-input" type="number" min="0" max="999" />
+                <span>作为</span>
+                <select id="vectors_enhanced_depth_role" class="text_pole widthNatural">
+                  <option value="0">系统</option>
+                  <option value="1">用户</option>
+                  <option value="2">助手</option>
+                </select>
+              </label>
+            </div>
+
+            <label class="checkbox_label" for="vectors_enhanced_include_wi">
+              <input id="vectors_enhanced_include_wi" type="checkbox" />
+              <span>包含在世界信息扫描中</span>
+            </label>
+
+          </div>
+        </details>
+        </div>
+    </div>
+
+    <!-- Rerank Settings -->
+    <div id="vectors_enhanced_rerank_settings" class="vectors-enhanced-section">
+      <details>
+        <summary><strong>Rerank 设置</strong></summary>
+
+        <label class="checkbox_label" for="vectors_enhanced_rerank_enabled" title="启用/禁用Rerank模型对搜索结果进行重排序">
+          <input id="vectors_enhanced_rerank_enabled" type="checkbox" />
+          <span>启用 Rerank</span>
+        </label>
+
+        <label class="checkbox_label" for="vectors_enhanced_rerank_success_notify" title="在Rerank成功时显示通知">
+          <input id="vectors_enhanced_rerank_success_notify" type="checkbox" />
+          <span>显示 Rerank 成功通知</span>
+        </label>
+
+        <div class="flex-container flexFlowColumn m-t-0-5">
+          <label for="vectors_enhanced_rerank_url">Rerank API URL</label>
+          <input id="vectors_enhanced_rerank_url" class="text_pole" type="text" placeholder="例如：https://api.siliconflow.cn/v1/rerank">
+
+          <label for="vectors_enhanced_rerank_apiKey">Rerank API Key</label>
+          <input id="vectors_enhanced_rerank_apiKey" class="text_pole" type="password" placeholder="输入您的API Key">
+
+          <label for="vectors_enhanced_rerank_model">Rerank 模型</label>
+          <input id="vectors_enhanced_rerank_model" class="text_pole" type="text" placeholder="例如：Pro/BAAI/bge-reranker-v2-m3">
+
+          <div class="flex-container">
+            <div class="flex1" title="在Rerank前，从向量搜索中获取的候选项数量">
+              <label for="vectors_enhanced_rerank_top_n"><small>Rerank Top N</small></label>
+              <input id="vectors_enhanced_rerank_top_n" type="number" class="text_pole" min="1" max="100">
+            </div>
+            <div class="flex1" title="混合分数中Rerank分数的权重 (0-1)">
+              <label for="vectors_enhanced_rerank_hybrid_alpha"><small>混合权重</small></label>
+              <input id="vectors_enhanced_rerank_hybrid_alpha" type="number" class="text_pole" min="0" max="1" step="0.1">
+            </div>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <!-- Experimental Settings -->
+    <div id="vectors_enhanced_experimental_settings_section" class="vectors-enhanced-section">
+      <details>
+        <summary>
+          <strong>
+            <i class="fa-solid fa-flask"></i> 实验性功能
+          </strong>
+        </summary>
+        
+        <div class="flex-container flexFlowColumn m-t-0-5">
+          <!-- Query Instruction Settings -->
+          <div class="experimental-feature-section" style="margin-bottom: 10px; padding: 10px; background-color: var(--SmartThemeBlurTintColor); border-radius: 5px;">
+            <label class="checkbox_label" for="vectors_enhanced_query_instruction_enabled" title="在查询时添加指令，引导向量系统查找特定类型的内容">
+              <input id="vectors_enhanced_query_instruction_enabled" type="checkbox" />
+              <span style="font-weight: bold;">
+                <i class="fa-solid fa-search"></i> 启用查询指令增强
+              </span>
+            </label>
+            
+            <div id="query_instruction_settings" style="display: none; margin-top: 10px; margin-left: 1.5rem;">
+              <div style="margin-bottom: 0.5rem;">
+                <label for="vectors_enhanced_query_instruction_preset">
+                  <small>预设模板:</small>
+                </label>
+                <select id="vectors_enhanced_query_instruction_preset" class="text_pole" style="width: 100%;">
+                  <option value="character">角色相关 - 查找角色特征、性格、关系或行动描述</option>
+                  <option value="plot">剧情相关 - 查找剧情细节、伏笔或重要事件</option>
+                  <option value="worldview">世界观相关 - 查找设定细节、背景知识或世界机制</option>
+                  <option value="writing_style">文风相关 - 查找叙事技巧、文笔风格或语言模式</option>
+                  <option value="general">通用检索 - 根据查询内容检索相关段落</option>
+                </select>
+              </div>
+              <label for="vectors_enhanced_query_instruction_template">
+                <small>当前指令模板:</small>
+              </label>
+              <textarea id="vectors_enhanced_query_instruction_template" 
+                       class="text_pole" 
+                       rows="3"
+                       placeholder="例如：Given a query, retrieve relevant passages from the context"
+                       style="width: 100%; font-size: 12px; resize: vertical;"></textarea>
+              <small style="opacity: 0.7; display: block; margin-top: 5px;">
+                <i class="fa-solid fa-info-circle"></i> 
+                此指令将以 "Instruct: [您的指令]\nQuery:[查询内容]" 的格式发送（注意Query后无空格）。请使用英文撰写指令。
+              </small>
+            </div>
+          </div>
+          
+          <!-- Rerank Deduplication Settings -->
+          <div class="experimental-feature-section" style="padding: 10px; background-color: var(--SmartThemeBlurTintColor); border-radius: 5px;">
+            <label class="checkbox_label" for="vectors_enhanced_rerank_deduplication_enabled" title="在重排序时进行智能去重">
+              <input id="vectors_enhanced_rerank_deduplication_enabled" type="checkbox" />
+              <span style="font-weight: bold;">
+                <i class="fa-solid fa-filter"></i> 启用 Rerank 智能去重
+              </span>
+            </label>
+            
+            <div id="rerank_deduplication_settings" style="display: none; margin-top: 10px; margin-left: 1.5rem;">
+              <label for="vectors_enhanced_rerank_deduplication_instruction">
+                <small>去重指令:</small>
+                <button id="reset_rerank_deduplication_instruction" 
+                        class="menu_button menu_button_icon" 
+                        title="重置为默认值"
+                        style="float: right; padding: 2px 8px; font-size: 11px; height: auto; min-height: unset;">
+                  <i class="fa-solid fa-undo"></i> 重置
+                </button>
+              </label>
+              <textarea id="vectors_enhanced_rerank_deduplication_instruction" 
+                       class="text_pole" 
+                       rows="6"
+                       placeholder="定义去重规则..."
+                       style="width: 100%; font-size: 12px; resize: vertical;"></textarea>
+              <small style="opacity: 0.7; display: block; margin-top: 5px;">
+                <i class="fa-solid fa-info-circle"></i> 
+                此指令将作为 "instruct" 参数发送给 Rerank API。请使用英文撰写指令。
+              </small>
+              <small style="color: var(--SmartThemeQuoteColor); display: block; margin-top: 5px;">
+                <i class="fa-solid fa-triangle-exclamation"></i> 
+                <strong>兼容性提示：</strong>仅部分 rerank API/模型支持指令功能（如 bge-reranker-v2-m3）。
+                标准 rerank API（Cohere、Jina AI 等）可能会忽略此参数。请确认您的 API 支持此功能。
+              </small>
+            </div>
+          </div>
+          
+          <div class="experimental-warning" style="margin-top: 15px; padding: 10px; border: 1px solid var(--SmartThemeQuoteColor); border-radius: 5px;">
+            <small style="color: var(--SmartThemeQuoteColor);">
+              <i class="fa-solid fa-triangle-exclamation"></i> 
+              <strong>注意：</strong>实验性功能可能不稳定，且需要特定的模型支持。请谨慎使用。
+            </small>
+          </div>
+          
+          <!-- Preview Injected Content Button -->
+          <div style="margin-top: 15px;">
+            <button id="vectors_enhanced_preview_injection" 
+                    class="menu_button" 
+                    title="预览当前查询实际注入的内容（包含实验性功能的影响）"
+                    style="width: 100%;">
+              <i class="fa-solid fa-eye"></i> 查看注入内容
+            </button>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <!-- Task List -->
+    <div id="vectors_enhanced_tasks_settings" class="vectors-enhanced-section">
+      <details>
+        <summary><strong>向量化任务</strong></summary>
+        <div id="vectors_enhanced_task_list" class="task-list">
+          <!-- Task list will be dynamically populated -->
+        </div>
+
+        <!-- External Task Import Button -->
+        <div class="flex-container alignItemsCenter" style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid var(--SmartThemeBorderColor);">
+          <button id="vectors_enhanced_import_external_task" class="menu_button" style="width: auto; min-width: fit-content;">
+            <i class="fa-solid fa-file-import"></i> 导入外挂任务
+          </button>
+          <button id="vectors_enhanced_query_storage_path" class="menu_button" style="width: auto; min-width: fit-content; margin-left: 0.5rem;">
+            <i class="fa-solid fa-folder-open"></i> 查询存储地址
+          </button>
+          <button id="vectors_enhanced_generate_blank_task" class="menu_button" style="width: auto; min-width: fit-content; margin-left: 0.5rem;">
+            <i class="fa-solid fa-plus-circle"></i> 生成空白任务
+          </button>
+        </div>
+      </details>
+    </div>
+
+
+    <!-- Action Buttons -->
+    <div id="vectors_enhanced_actions_settings" class="vectors-enhanced-section">
+        <!-- Preview Options -->
+        <div class="vectors-enhanced-preview-options" style="margin-bottom: 0.5rem;">
+          <label class="checkbox_label" for="vectors_enhanced_preview_raw">
+            <input id="vectors_enhanced_preview_raw" type="checkbox" />
+            <span>预览时显示原始内容（标签筛选后）</span>
+          </label>
+        </div>
+        <div class="vectors-enhanced-actions flex-container">
+          <button id="vectors_enhanced_preview" class="menu_button menu_button_icon">
+            <i class="fa-solid fa-eye"></i>
+            <span>预览</span>
+          </button>
+          <button id="vectors_enhanced_export" class="menu_button menu_button_icon">
+            <i class="fa-solid fa-download"></i>
+            <span>导出</span>
+          </button>
+          <button id="memory_summarize_btn" class="menu_button menu_button_icon" title="总结选中的聊天内容并生成世界书">
+            <i class="fa-solid fa-brain"></i>
+            <span>总结</span>
+          </button>
+          <button id="vectors_enhanced_vectorize" class="menu_button menu_button_icon">
+            <i class="fa-solid fa-vector-square"></i>
+            <span>向量化</span>
+          </button>
+          <button id="vectors_enhanced_abort" class="menu_button menu_button_icon vectors-btn-hidden" title="中断向量化">
+            <i class="fa-solid fa-stop"></i>
+            <span>中断</span>
+          </button>
+        </div>
+
+        <!-- Progress Bar -->
+        <div id="vectors_enhanced_progress" class="vectors-enhanced-progress">
+          <div class="progress-bar">
+            <div class="progress-bar-inner"></div>
+          </div>
+          <div class="progress-text">准备中...</div>
+        </div>
+
+        <!-- Status Display -->
+        <div id="vectors_enhanced_status" class="vectors-enhanced-status">
+          <!-- Status messages will be displayed here -->
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
