@@ -1,6 +1,6 @@
 import { extension_settings } from '../../../../../../extensions.js';
 import { saveSettingsDebounced } from '../../../../../../../script.js';
-import { callGenericPopup, POPUP_TYPE } from '../../../../../../popup.js';
+import { callGenericPopup, POPUP_TYPE, POPUP_RESULT } from '../../../../../../popup.js';
 import { renderTagRulesUI } from './TagRulesEditor.js';
 
 /**
@@ -8,6 +8,7 @@ import { renderTagRulesUI } from './TagRulesEditor.js';
  */
 export class TagPresetManager {
     constructor() {
+        this.localSettings = null;
         this.initializePresets();
     }
 
@@ -59,6 +60,7 @@ export class TagPresetManager {
 
         extension_settings.vectors_enhanced.tagPresets.activePresetId = presetId;
         saveSettingsDebounced();
+        this._syncToLocalSettings();
 
         this.updatePresetSelector();
         toastr.success(`预设 "${presetName}" 已保存`);
@@ -69,10 +71,7 @@ export class TagPresetManager {
      */
     loadPreset(presetId) {
         if (!presetId) {
-            // Load default (empty) rules
-            extension_settings.vectors_enhanced.selected_content.chat.tag_rules = [];
-            extension_settings.vectors_enhanced.selected_content.chat.apply_tags_to_first_message = false;
-            extension_settings.vectors_enhanced.tagPresets.activePresetId = null;
+            this._clearActivePresetState();
         } else {
             const preset = extension_settings.vectors_enhanced.tagPresets.presets[presetId];
             if (!preset) {
@@ -86,6 +85,7 @@ export class TagPresetManager {
         }
 
         saveSettingsDebounced();
+        this._syncToLocalSettings();
         renderTagRulesUI();
 
         // Update checkbox state
@@ -116,8 +116,84 @@ export class TagPresetManager {
 
         preset.name = newName.trim();
         saveSettingsDebounced();
+        this._syncToLocalSettings();
         this.updatePresetSelector();
         toastr.success(`预设已重命名为 "${newName}"`);
+    }
+
+    /**
+     * Set reference to local settings for bidirectional sync.
+     * Called from index.js after initialization.
+     */
+    setLocalSettings(settings) {
+        this.localSettings = settings;
+    }
+
+    /**
+     * Sync tagPresets and selected_content from extension_settings
+     * back to local settings. This prevents the dual-object overwrite
+     * bug where stale local settings overwrite extension_settings changes.
+     */
+    _syncToLocalSettings() {
+        if (!this.localSettings) {
+            console.warn('TagPresetManager: _syncToLocalSettings skipped - localSettings not set');
+            return;
+        }
+        if (extension_settings.vectors_enhanced?.tagPresets) {
+            this.localSettings.tagPresets = extension_settings.vectors_enhanced.tagPresets;
+        }
+        if (extension_settings.vectors_enhanced?.selected_content) {
+            this.localSettings.selected_content = extension_settings.vectors_enhanced.selected_content;
+        }
+    }
+
+    /**
+     * Clear the active preset state back to defaults
+     */
+    _clearActivePresetState() {
+        extension_settings.vectors_enhanced.tagPresets.activePresetId = null;
+        extension_settings.vectors_enhanced.selected_content.chat.tag_rules = [];
+        extension_settings.vectors_enhanced.selected_content.chat.apply_tags_to_first_message = false;
+    }
+
+    /**
+     * Delete an existing preset
+     */
+    async deletePreset(presetId) {
+        if (!presetId) {
+            toastr.error('未选择预设');
+            return;
+        }
+        const presets = extension_settings.vectors_enhanced.tagPresets?.presets;
+        if (!presets || !presets[presetId]) {
+            toastr.error('预设不存在');
+            return;
+        }
+        const presetName = presets[presetId].name;
+        const confirm = await callGenericPopup(
+            `确定要删除预设 "${presetName}" 吗？此操作不可撤销。`,
+            POPUP_TYPE.CONFIRM,
+            '',
+            { okButton: '删除', cancelButton: '取消' }
+        );
+        if (confirm !== POPUP_RESULT.AFFIRMATIVE) return;
+
+        const wasActive = (extension_settings.vectors_enhanced.tagPresets.activePresetId === presetId);
+        delete presets[presetId];
+
+        if (wasActive) {
+            this._clearActivePresetState();
+        }
+
+        saveSettingsDebounced();
+        this._syncToLocalSettings();
+        this.updatePresetSelector();
+
+        if (wasActive) {
+            renderTagRulesUI();
+            $('#vectors_enhanced_apply_tags_to_first_message').prop('checked', false);
+        }
+        toastr.success(`预设 "${presetName}" 已删除`);
     }
 
     /**
@@ -155,11 +231,14 @@ export class TagPresetManager {
     updateRenameButtonVisibility() {
         const activePresetId = extension_settings.vectors_enhanced.tagPresets.activePresetId;
         const renameButton = $('#vectors_enhanced_tag_preset_rename');
+        const deleteButton = $('#vectors_enhanced_tag_preset_delete');
 
         if (activePresetId && activePresetId !== '') {
             renameButton.show();
+            deleteButton.show();
         } else {
             renameButton.hide();
+            deleteButton.hide();
         }
     }
 
@@ -177,6 +256,14 @@ export class TagPresetManager {
             const activePresetId = extension_settings.vectors_enhanced.tagPresets.activePresetId;
             if (activePresetId) {
                 this.renamePreset(activePresetId);
+            }
+        });
+
+        // Delete preset button
+        $('#vectors_enhanced_tag_preset_delete').off('click').on('click', () => {
+            const activePresetId = extension_settings.vectors_enhanced.tagPresets.activePresetId;
+            if (activePresetId) {
+                this.deletePreset(activePresetId);
             }
         });
 
