@@ -67,6 +67,8 @@ import { EventManager } from './src/ui/EventManager.js';
 import { StateManager } from './src/ui/StateManager.js';
 import { getMessages, createVectorItem, getHiddenMessages } from './src/utils/chatUtils.js';
 import { StorageAdapter } from './src/infrastructure/storage/StorageAdapter.js';
+import { BrowserVectorBackend } from './src/infrastructure/storage/BrowserVectorBackend.js';
+import { detectHostRuntime, logHostRuntime } from './src/compat/HostRuntime.js';
 import { VectorizationAdapter } from './src/infrastructure/api/VectorizationAdapter.js';
 import { eventBus } from './src/infrastructure/events/eventBus.instance.js';
 import { RerankService } from './src/services/rerank/index.js';
@@ -87,6 +89,7 @@ import { RerankService } from './src/services/rerank/index.js';
  */
 
 const MODULE_NAME = 'vectors-enhanced';
+const hostRuntime = detectHostRuntime();
 
 export const EXTENSION_PROMPT_TAG = '3_vectors';
 export const MEMORY_EXTENSION_TAG = '4_memory';
@@ -116,6 +119,7 @@ const settings = {
   // Vector source settings
   source: 'transformers',
   local_model: '', // 本地transformers模型名称
+  webllm_model: '', // WebLLM 嵌入模型；留空时自动选择第一个可用模型
   vllm_model: '',
   vllm_url: '',
   vllm_api_key: '', // vLLM API key
@@ -3208,6 +3212,7 @@ function migrateTagSettings() {
 
 jQuery(async () => {
   try {
+    logHostRuntime(hostRuntime);
     console.log('Vectors Enhanced: Starting initialization...');
 
     // 使用独立的设置键避免冲突
@@ -3406,6 +3411,7 @@ jQuery(async () => {
   // 初始化设置子组件
   console.log('Vectors Enhanced: Initializing settings sub-components...');
   await vectorizationSettings.init();
+  $('#vectors_enhanced_tauri_notice').toggle(hostRuntime.isTauriTavern);
   await querySettings.init();
   await contentSelectionSettings.init();
 
@@ -3449,13 +3455,22 @@ jQuery(async () => {
   globalProgressManager = progressManager;
   globalEventManager = eventManager;
 
-  // 创建存储适配器实例
+  // 创建存储适配器实例。TauriTavern 当前原生 /api/vector 后端返回 501，
+  // 因此仅在宿主明确报告不可用后，自动切换到浏览器 IndexedDB 后端。
   console.log('Vectors Enhanced: Creating StorageAdapter...');
+  const browserVectorBackend = hostRuntime.canFallbackToBrowserVectors
+    ? new BrowserVectorBackend({
+        settings,
+        textgenerationwebuiSettings: textgenerationwebui_settings,
+        textgenTypes: textgen_types,
+      })
+    : null;
   storageAdapter = new StorageAdapter({
     getRequestHeaders,
     getVectorsRequestBody,
     throwIfSourceInvalid,
-    cachedVectors
+    cachedVectors,
+    browserVectorBackend,
   });
 
   // 创建向量化适配器实例

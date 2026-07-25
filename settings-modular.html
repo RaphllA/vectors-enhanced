@@ -528,6 +528,17 @@
       <details>
         <summary><strong>向量化设置</strong></summary>
 
+        <div id="vectors_enhanced_tauri_notice"
+             class="vectors-enhanced-compat-notice"
+             style="display: none; margin-bottom: 0.75rem; padding: 0.75rem; border: 1px solid var(--SmartThemeBorderColor); border-radius: 6px;">
+          <strong><i class="fa-solid fa-circle-info"></i> TauriTavern 兼容模式</strong>
+          <div style="margin-top: 0.35rem; opacity: 0.85;">
+            当前 TauriTavern 原生向量后端尚未实现时，本插件会自动改用 IndexedDB 保存向量。
+            兼容模式支持 Ollama、vLLM、WebLLM 和 KoboldCpp；Transformers 服务端来源暂不可用。
+            更换来源或模型后需要重新向量化。
+          </div>
+        </div>
+
         <!-- Source Selection -->
         <div class="flex-container flexFlowColumn">
           <label for="vectors_enhanced_source">向量化源</label>
@@ -545,6 +556,20 @@
           <div class="flex-container flexFlowColumn">
             <label for="vectors_enhanced_local_model">本地模型</label>
             <input id="vectors_enhanced_local_model" class="text_pole" type="text" placeholder="Xenova/all-MiniLM-L6-v2" />
+          </div>
+        </div>
+
+        <!-- WebLLM Settings -->
+        <div id="vectors_enhanced_webllm_settings" class="vectors-source-settings vectors-webllm-settings">
+          <div class="flex-container flexFlowColumn">
+            <label for="vectors_enhanced_webllm_model">WebLLM 嵌入模型</label>
+            <input id="vectors_enhanced_webllm_model"
+                   class="text_pole"
+                   type="text"
+                   placeholder="留空时自动使用 WebLLM 提供的第一个嵌入模型" />
+            <small style="opacity: 0.7; margin-top: 0.25rem;">
+              需要先安装并启用 SillyTavern WebLLM 扩展。
+            </small>
           </div>
         </div>
 

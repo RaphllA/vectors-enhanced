@@ -92,14 +92,25 @@ UI层 (UI Layer)
 - **延迟加载**：外挂任务仅在需要时解析
 - **事件防抖**：高频操作优化，提升UI响应性
 
+## 🧩 宿主兼容性
+
+插件使用同一份代码支持 SillyTavern 与 TauriTavern：
+
+- **SillyTavern**：继续使用原生 `/api/vector/*` 后端，原有行为不变。
+- **TauriTavern**：当前原生向量端点返回不可用状态时，插件自动使用 IndexedDB 保存和检索向量。
+- TauriTavern 兼容模式支持 Ollama、vLLM、WebLLM，以及实验性的 KoboldCpp；Transformers 服务端来源暂不可用。
+- 更换向量来源、服务地址或模型后，需要重新向量化，避免混用不同维度的向量。
+
+详细实现、限制、验证命令和手测清单见 [宿主兼容说明](docs/host-compatibility.md)。
+
 ## 📦 安装与设置
 
 ### 前置要求
-- SillyTavern 最新版本
-- 现代浏览器（Chrome/Firefox/Edge）
+- SillyTavern 最新版本，或 TauriTavern 当前版本
+- 现代浏览器/WebView
 - 至少一个向量化引擎的访问权限
 
-### 安装步骤
+### SillyTavern 安装
 1. 将扩展文件夹复制到 SillyTavern 的扩展目录：
    ```
    SillyTavern/public/scripts/extensions/third-party/vectors-enhanced/
@@ -107,8 +118,24 @@ UI层 (UI Layer)
 
 2. 在 SillyTavern 中启用扩展：
    - 打开 SillyTavern
-   - 进入"扩展"设置
- 
+   - 进入“扩展”设置
+
+### TauriTavern 安装
+
+优先在 TauriTavern 扩展管理界面中使用本仓库 URL 安装：
+
+```text
+https://github.com/RaphllA/vectors-enhanced
+```
+
+手动安装时，将完整扩展目录放入以下任一位置，并保持文件夹名为 `vectors-enhanced`：
+
+```text
+data/default-user/extensions/vectors-enhanced       # local，优先级更高
+data/extensions/third-party/vectors-enhanced        # global
+```
+
+### 配置向量化引擎
 
 3. 配置向量化引擎：
    - 在扩展设置中选择您要使用的向量化源

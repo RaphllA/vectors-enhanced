@@ -20,6 +20,10 @@ export class VectorizationSettings {
                 selector: '#vectors_enhanced_transformers_settings',
                 fields: ['local_model']
             },
+            webllm: {
+                selector: '#vectors_enhanced_webllm_settings',
+                fields: ['webllm_model']
+            },
             vllm: {
                 selector: '#vectors_enhanced_vllm_settings',
                 fields: ['vllm_model', 'vllm_url', 'vllm_api_key']
@@ -76,6 +80,7 @@ export class VectorizationSettings {
 
         // Model and URL inputs for each source
         this.bindSourceSpecificListeners('transformers');
+        this.bindSourceSpecificListeners('webllm');
         this.bindSourceSpecificListeners('vllm');
         this.bindSourceSpecificListeners('ollama');
 
@@ -440,6 +445,7 @@ export class VectorizationSettings {
         return {
             source: this.settings.source,
             local_model: this.settings.local_model,
+            webllm_model: this.settings.webllm_model,
             vllm_model: this.settings.vllm_model,
             vllm_url: this.settings.vllm_url,
             ollama_model: this.settings.ollama_model,

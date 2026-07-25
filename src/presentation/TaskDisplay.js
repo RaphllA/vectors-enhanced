@@ -1,4 +1,30 @@
-import { formatRanges } from '../../../../utils.js';
+function formatRanges(chatItems) {
+    if (!chatItems?.length) {
+        return '没有新的聊天记录';
+    }
+
+    const indices = chatItems
+        .map(item => Number(item?.metadata?.index))
+        .filter(Number.isFinite)
+        .sort((left, right) => left - right);
+    if (!indices.length) {
+        return '没有新的聊天记录';
+    }
+
+    const ranges = [];
+    let start = indices[0];
+    let end = indices[0];
+    for (let index = 1; index < indices.length; index++) {
+        if (indices[index] === end + 1) {
+            end = indices[index];
+        } else {
+            ranges.push(start === end ? `#${start}` : `#${start}-#${end}`);
+            start = end = indices[index];
+        }
+    }
+    ranges.push(start === end ? `#${start}` : `#${start}-#${end}`);
+    return ranges.join('、');
+}
 
 /**
  * Generates a concise, human-readable name for a vectorization task based on its contents.

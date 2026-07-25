@@ -227,6 +227,14 @@ export class SettingsManager {
    * 初始化向量化源设置
    */
   initializeVectorizationSettings() {
+    // WebLLM 设置
+    $('#vectors_enhanced_webllm_model')
+      .val(this.settings.webllm_model || '')
+      .on('input', () => {
+        this.settings.webllm_model = String($('#vectors_enhanced_webllm_model').val());
+        this.updateAndSave();
+      });
+
     // vLLM 设置
     $('#vectors_enhanced_vllm_model')
       .val(this.settings.vllm_model)

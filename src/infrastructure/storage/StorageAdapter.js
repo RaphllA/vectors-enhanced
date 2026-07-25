@@ -20,6 +20,8 @@ export class StorageAdapter {
         this.getVectorsRequestBody = dependencies.getVectorsRequestBody;
         this.throwIfSourceInvalid = dependencies.throwIfSourceInvalid;
         this.cachedVectors = dependencies.cachedVectors;
+        this.browserVectorBackend = dependencies.browserVectorBackend ?? null;
+        this.useBrowserVectorBackend = false;
         
         logger.log('StorageAdapter initialized');
     }
@@ -32,6 +34,10 @@ export class StorageAdapter {
     async getSavedHashes(collectionId) {
         try {
             logger.log(`Getting saved hashes for collection: ${collectionId}`);
+
+            if (this.useBrowserVectorBackend) {
+                return this.browserVectorBackend.getSavedHashes(collectionId);
+            }
             
             const response = await fetch(`${this.baseUrl}/list`, {
                 method: 'POST',
@@ -42,8 +48,11 @@ export class StorageAdapter {
                 }),
             });
 
+            if (this.activateBrowserFallback(response, 'list vectors')) {
+                return this.browserVectorBackend.getSavedHashes(collectionId);
+            }
             if (!response.ok) {
-                throw new Error(`Failed to get saved hashes for collection ${collectionId}`);
+                throw await this.createResponseError(response, `Failed to get saved hashes for collection ${collectionId}`);
             }
 
             const hashes = await response.json();
@@ -67,6 +76,10 @@ export class StorageAdapter {
     async insertVectorItems(collectionId, items, signal = null, options = {}) {
         try {
             logger.log(`Inserting ${items.length} items into collection: ${collectionId}`);
+
+            if (this.useBrowserVectorBackend) {
+                return this.browserVectorBackend.insertVectorItems(collectionId, items, signal, options);
+            }
             
             this.throwIfSourceInvalid();
 
@@ -82,8 +95,11 @@ export class StorageAdapter {
                 signal: signal,
             });
 
+            if (this.activateBrowserFallback(response, 'insert vectors')) {
+                return this.browserVectorBackend.insertVectorItems(collectionId, items, signal, options);
+            }
             if (!response.ok) {
-                throw new Error(`Failed to insert vector items for collection ${collectionId}`);
+                throw await this.createResponseError(response, `Failed to insert vector items for collection ${collectionId}`);
             }
 
             logger.log(`Successfully inserted ${items.length} items`);
@@ -108,6 +124,10 @@ export class StorageAdapter {
     async queryCollection(collectionId, searchText, topK, threshold = 0.25) {
         try {
             logger.log(`Querying collection ${collectionId} with text: "${searchText.substring(0, 50)}..."`);
+
+            if (this.useBrowserVectorBackend) {
+                return this.browserVectorBackend.queryCollection(collectionId, searchText, topK, threshold);
+            }
             
             const response = await fetch(`${this.baseUrl}/query`, {
                 method: 'POST',
@@ -122,8 +142,11 @@ export class StorageAdapter {
                 }),
             });
 
+            if (this.activateBrowserFallback(response, 'query vectors')) {
+                return this.browserVectorBackend.queryCollection(collectionId, searchText, topK, threshold);
+            }
             if (!response.ok) {
-                throw new Error(`Failed to query collection ${collectionId}`);
+                throw await this.createResponseError(response, `Failed to query collection ${collectionId}`);
             }
 
             const result = await response.json();
@@ -179,6 +202,10 @@ export class StorageAdapter {
     async getVectorTexts(collectionId, hashes) {
         try {
             logger.log(`Retrieving texts for ${hashes.length} hashes from collection: ${collectionId}`);
+
+            if (this.useBrowserVectorBackend) {
+                return this.browserVectorBackend.getVectorTexts(collectionId, hashes);
+            }
             
             // SillyTavern没有专门的retrieve端点，但我们可以通过query获取metadata中的文本
             // 使用一个无关的搜索词来获取所有项目的metadata
@@ -195,8 +222,11 @@ export class StorageAdapter {
                 }),
             });
 
+            if (this.activateBrowserFallback(response, 'retrieve vector texts')) {
+                return this.browserVectorBackend.getVectorTexts(collectionId, hashes);
+            }
             if (!response.ok) {
-                throw new Error(`Failed to retrieve texts for collection ${collectionId}`);
+                throw await this.createResponseError(response, `Failed to retrieve texts for collection ${collectionId}`);
             }
 
             const result = await response.json();
@@ -241,6 +271,12 @@ export class StorageAdapter {
     async purgeVectorIndex(collectionId) {
         try {
             logger.log(`Purging vector index for collection: ${collectionId}`);
+
+            if (this.useBrowserVectorBackend) {
+                const purged = await this.browserVectorBackend.purgeVectorIndex(collectionId);
+                this.cachedVectors?.delete?.(collectionId);
+                return purged;
+            }
             
             const response = await fetch(`${this.baseUrl}/purge`, {
                 method: 'POST',
@@ -251,8 +287,13 @@ export class StorageAdapter {
                 }),
             });
 
+            if (this.activateBrowserFallback(response, 'purge vectors')) {
+                const purged = await this.browserVectorBackend.purgeVectorIndex(collectionId);
+                this.cachedVectors?.delete?.(collectionId);
+                return purged;
+            }
             if (!response.ok) {
-                throw new Error(`Could not delete vector index for collection ${collectionId}`);
+                throw await this.createResponseError(response, `Could not delete vector index for collection ${collectionId}`);
             }
 
             // 清除缓存
@@ -301,6 +342,54 @@ export class StorageAdapter {
                 count: 0
             };
         }
+    }
+
+    /**
+     * Returns all vector records when the active backend supports export.
+     * The SillyTavern HTTP API has no portable retrieve-all endpoint, while the
+     * browser fallback owns its records and can return them directly.
+     */
+    async getAllVectorData(collectionId) {
+        if (!this.useBrowserVectorBackend && this.browserVectorBackend) {
+            // Probe the native backend so export works after an app restart,
+            // before any normal list/query operation has selected a backend.
+            await this.getSavedHashes(collectionId);
+        }
+        if (this.useBrowserVectorBackend) {
+            return this.browserVectorBackend.getAllVectorData(collectionId);
+        }
+        return [];
+    }
+
+    activateBrowserFallback(response, action) {
+        if (this.useBrowserVectorBackend || !this.browserVectorBackend) {
+            return this.useBrowserVectorBackend;
+        }
+        if (![404, 405, 501].includes(response?.status)) {
+            return false;
+        }
+        if (!this.browserVectorBackend.isSupported()) {
+            return false;
+        }
+
+        this.useBrowserVectorBackend = true;
+        logger.warn(
+            `Host vector API is unavailable during ${action} (HTTP ${response.status}); `
+            + 'using the IndexedDB browser vector backend.',
+        );
+        return true;
+    }
+
+    async createResponseError(response, fallbackMessage) {
+        let detail = '';
+        try {
+            const payload = await response.clone().json();
+            detail = payload?.message || payload?.error?.message || payload?.error || payload?.cause || '';
+        } catch {
+            // Keep the fallback message for non-JSON responses.
+        }
+        const status = response?.status ? ` (HTTP ${response.status})` : '';
+        return new Error(`${fallbackMessage}${status}${detail ? `: ${detail}` : ''}`);
     }
 
     /**
