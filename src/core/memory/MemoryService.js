@@ -4,6 +4,7 @@
  */
 import { chat_metadata, saveMetadata } from '../../../../../../../script.js';
 import { createWorldInfoEntry, saveWorldInfo } from '../../../../../../world-info.js';
+import { buildCustomConnection, normalizeOpenAIBaseUrl } from './OpenAICompatibleClient.js';
 
 export class MemoryService {
     constructor(dependencies = {}) {
@@ -233,51 +234,6 @@ export class MemoryService {
     }
 
     /**
-     * 缓存的 API Key（用于避免重复写入）
-     * @type {string|null}
-     */
-    _cachedApiKey = null;
-
-    /**
-     * 设置自定义API的API Key到SillyTavern secrets
-     * @param {string} apiKey - API密钥
-     * @returns {Promise<boolean>} 是否成功
-     */
-    async setCustomApiKey(apiKey) {
-        // 如果API Key没有变化，跳过设置
-        if (this._cachedApiKey === apiKey) {
-            console.log('[MemoryService] API Key未变化，跳过设置 (来自缓存)');
-            return true;
-        }
-
-        try {
-            const headers = this.getRequestHeaders ? this.getRequestHeaders() : {};
-            headers['Content-Type'] = 'application/json';
-
-            const response = await fetch('/api/secrets/write', {
-                method: 'POST',
-                headers: headers,
-                body: JSON.stringify({
-                    key: 'api_key_custom',
-                    value: apiKey
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error(`设置API Key失败: HTTP ${response.status}`);
-            }
-
-            // 更新缓存
-            this._cachedApiKey = apiKey;
-            console.log('[MemoryService] 自定义API Key已设置并缓存');
-            return true;
-        } catch (error) {
-            console.error('[MemoryService] 设置API Key失败:', error);
-            return false;
-        }
-    }
-
-    /**
      * 调用OpenAI兼容API（通过SillyTavern后端代理，避免CORS问题）
      * @param {string} prompt - 提示词
      * @param {Object} config - API配置
@@ -286,23 +242,13 @@ export class MemoryService {
      * @returns {Promise<string>} AI响应
      */
     async callOpenAICompatibleAPI(prompt, config, summaryFormat = '', maxTokens = 8192) {
-        const { url, apiKey, model } = config;
+        const { url, secretId, model } = config;
 
-        if (!url || !apiKey) {
-            throw new Error('请先配置API端点和密钥');
+        if (!url) {
+            throw new Error('请先配置API端点');
         }
 
-        // 标准化API端点URL（移除末尾的/chat/completions等路径，只保留基础URL）
-        let baseUrl = url.trim();
-        // 移除常见的API路径后缀
-        baseUrl = baseUrl.replace(/\/chat\/completions\/?$/, '');
-        baseUrl = baseUrl.replace(/\/v1\/?$/, '');
-        baseUrl = baseUrl.replace(/\/$/, '');
-        // 确保以/v1结尾
-        baseUrl = baseUrl + '/v1';
-
-        // 先将 API Key 写入 SillyTavern secrets，避免需要手动点连接
-        await this.setCustomApiKey(apiKey);
+        const baseUrl = normalizeOpenAIBaseUrl(url);
 
         try {
             // 创建超时控制器
@@ -365,12 +311,8 @@ export class MemoryService {
                     temperature: 1,
                     max_tokens: maxTokens,
                     stream: false,
-                    // 使用custom源，通过reverse_proxy转发请求
-                    chat_completion_source: 'custom',
-                    custom_url: baseUrl,
-                    reverse_proxy: baseUrl,
-                    proxy_password: apiKey,
-                    custom_include_headers: '',
+                    // 使用custom源，并按 UUID 选择 SillyTavern 服务端已保存的密钥
+                    ...buildCustomConnection(baseUrl, secretId),
                     // 禁用不需要的功能
                     include_reasoning: false,
                     reasoning_effort: 'medium',
@@ -829,25 +771,15 @@ export class MemoryService {
     /**
      * 获取OpenAI兼容API的模型列表（通过SillyTavern后端代理）
      * @param {string} url - API端点URL
-     * @param {string} apiKey - API密钥
+     * @param {string} secretId - SillyTavern Custom Key UUID，空值使用 active Key
      * @returns {Promise<Array>} 模型列表
      */
-    async fetchOpenAICompatibleModels(url, apiKey) {
+    async fetchOpenAICompatibleModels(url, secretId = '') {
         if (!url) {
             throw new Error('请先配置API端点URL');
         }
 
-        // 标准化API端点URL
-        let baseUrl = url.trim();
-        baseUrl = baseUrl.replace(/\/chat\/completions\/?$/, '');
-        baseUrl = baseUrl.replace(/\/v1\/?$/, '');
-        baseUrl = baseUrl.replace(/\/$/, '');
-        baseUrl = baseUrl + '/v1';
-
-        // 先将 API Key 写入 SillyTavern secrets，确保后端能读取到
-        if (apiKey) {
-            await this.setCustomApiKey(apiKey);
-        }
+        const baseUrl = normalizeOpenAIBaseUrl(url);
 
         try {
             // 获取请求头（包含CSRF token）
@@ -859,11 +791,7 @@ export class MemoryService {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify({
-                    chat_completion_source: 'custom',
-                    custom_url: baseUrl,
-                    reverse_proxy: baseUrl,
-                    proxy_password: apiKey || '',
-                    custom_include_headers: ''
+                    ...buildCustomConnection(baseUrl, secretId)
                 })
             });
 

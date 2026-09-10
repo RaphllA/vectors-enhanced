@@ -305,10 +305,22 @@ export class SettingsManager {
         this.updateAndSave();
       });
 
-    $('#vectors_enhanced_rerank_apiKey')
-      .val(this.settings.rerank_apiKey)
-      .on('input', () => {
-        this.settings.rerank_apiKey = $('#vectors_enhanced_rerank_apiKey').val();
+    $('#vectors_enhanced_rerank_secret_key')
+      .val(this.settings.rerank_secret_key)
+      .on('change', () => {
+        delete this.settings.rerank_apiKey;
+        delete this.configManager.getAll().rerank_apiKey;
+        this.settings.rerank_secret_key = $('#vectors_enhanced_rerank_secret_key').val();
+        this.settings.rerank_secret_id = '';
+        this.updateAndSave();
+      });
+
+    $('#vectors_enhanced_rerank_secret_id')
+      .val(this.settings.rerank_secret_id)
+      .on('change', () => {
+        delete this.settings.rerank_apiKey;
+        delete this.configManager.getAll().rerank_apiKey;
+        this.settings.rerank_secret_id = $('#vectors_enhanced_rerank_secret_id').val();
         this.updateAndSave();
       });
 
