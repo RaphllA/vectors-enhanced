@@ -95,7 +95,7 @@ UI层 (UI Layer)
 ## 📦 安装与设置
 
 ### 前置要求
-- SillyTavern 最新版本
+- SillyTavern 1.18.0 或更高版本
 - 现代浏览器（Chrome/Firefox/Edge）
 - 至少一个向量化引擎的访问权限
 
@@ -114,6 +114,60 @@ UI层 (UI Layer)
    - 在扩展设置中选择您要使用的向量化源
    - 配置必要的API密钥或服务地址
 
+### 从旧版升级后第一次使用
+
+升级后如果看到下面两条橙色提示，这是正常的迁移保护，不是初始化失败：
+
+- `检测到旧版总结明文 Key：它已停止使用`：旧版曾把总结 Key 保存在扩展设置中。新版不会再使用或自动写入这个明文 Key。
+- `Rerank 已暂时关闭`：旧版 Rerank Key 不能安全地自动判断应迁移到哪种服务，因此插件先关闭 Rerank，避免误用其他 active Key。
+
+旧 URL、模型和其他参数仍会保留。完成下面的设置后即可重新启用功能；旧总结字段仍存在时，刷新页面后可能再次看到提醒，但它不会再被用于请求。
+
+#### 总结：选择已有的 Custom Key
+
+1. 在 SillyTavern 的 API 密钥管理器中，将总结专用 Key 保存到 **Custom** 类型。已有条目可以直接复用，不需要重复创建。
+2. 打开 Vectors Enhanced → **总结设置**，API 来源选择 **OpenAI 兼容**。
+3. 填写总结 API 地址，在 **SillyTavern Custom Key** 中选择刚才的条目。
+4. 刷新或填写模型，然后执行一次手动总结测试。
+
+选择具体条目后，总结只使用该条目，不会切换当前 active Custom Key，也不会自动创建新 Key。选择“使用当前 active Custom Key”则会跟随酒馆当前的 active 条目。
+
+#### Rerank：最省事的家庭 Tiny-LLM/vLLM 用法
+
+如果向量化和 Rerank 访问的是同一套家庭服务，并且可以共用同一个 Key：
+
+1. 先按下方“Rerank 服务端插件”章节完成服务端安装。
+2. 打开 Vectors Enhanced → **Rerank 设置**。
+3. 填写 Mac 上 Rerank API 的地址与模型。
+4. **Rerank 密钥类型**选择 `vLLM（默认，与向量化共用）`。
+5. **Rerank API Key**选择“使用该类型的 active Key”，或明确选择某个 vLLM Key 条目。
+6. 重新开启 **启用 Rerank**。
+
+这样浏览器只请求 SillyTavern；再由 NAS 上的 SillyTavern 请求 Mac。人在内网或外网使用酒馆，浏览器都不需要直接访问 Mac，也不会直接拿到 Rerank Key。
+
+#### Rerank：独立或公网 API
+
+- 独立 Rerank Key：在酒馆中保存为 **Generic**，密钥类型选择 `Generic（独立 Rerank Key）`，再选择对应条目。
+- SiliconFlow / Cohere：选择对应的密钥类型和条目。
+- 公网 Rerank URL 的填写方式不变；请求同样经 SillyTavern 服务端发出。
+
+密钥列表没有显示新条目时，点击字段旁边的刷新按钮。钥匙按钮用于打开 SillyTavern 的密钥管理器。
+
+### Rerank 服务端插件
+
+Rerank 现在与向量化一样由 SillyTavern 服务端访问上游，解决 HTTPS 页面访问 HTTP LAN API 的 Mixed Content/CORS 问题。它不需要新增端口或域名，但需要安装本仓库的配套 server plugin：
+
+1. 将 `server-plugin/` 挂载或复制到 SillyTavern 容器的 `/home/node/app/plugins/vectors-enhanced`。
+2. 在 `config.yaml` 中设置 `enableServerPlugins: true`。
+3. 启用 `privateAddressWhitelist`，并将运行 Rerank 的 Mac/LAN 主机 IP 以 `/32` 加入 `allowedRanges`。
+4. 重启 SillyTavern。在扩展的 Rerank 设置中选择服务端密钥：默认复用 vLLM active Key，也可以选择 Generic、SiliconFlow 或 Cohere 中的指定 UUID。
+
+公网 Rerank API 仍填写原 URL；请求也会经同一个服务端路由发出。完整接口、安全限制、迁移和回滚说明见 [SPEC.md](SPEC.md)。
+
+### NAS 版本管理边界
+
+版本管理只在本地开发仓库和 GitHub 进行。NAS 的 `extensions/vectors-enhanced` 是部署副本，不保留 `.git`，不要在酒馆扩展管理器中对它执行 Git 更新；发布时从已验证的本地版本覆盖，回滚时使用对应的部署备份。
+
 ## 🚀 快速开始
 
 ### 1. 向量化聊天记录
@@ -125,7 +179,7 @@ UI层 (UI Layer)
 ### 2. 设置记忆管理
 1. 进入记忆管理设置
 2. 选择AI总结API（OpenAI或Gemini）
-3. 配置API密钥
+3. OpenAI 兼容模式先在 SillyTavern Custom Keys 中保存密钥，再在插件中选择对应 UUID
 4. 设置自动总结参数：
    - 触发间隔（每N层楼）
    - 总结深度（最近M层）

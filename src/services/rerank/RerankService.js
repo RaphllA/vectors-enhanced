@@ -8,11 +8,13 @@ export class RerankService {
      * @param {Object} settings - Global settings object
      * @param {Object} options - Additional options
      * @param {Function} options.toastr - Toast notification function
+     * @param {Function} options.getRequestHeaders - SillyTavern request headers function
      */
     constructor(settings, options = {}) {
         this.config = new RerankConfig(settings);
         this.settings = settings; // Keep reference to settings for checking show_query_notification
         this.toastr = options.toastr || console;
+        this.getRequestHeaders = options.getRequestHeaders;
         this.lastNotifyTime = 0;
         this.NOTIFICATION_COOLDOWN = 5000; // 5 seconds
     }
@@ -84,7 +86,8 @@ export class RerankService {
             // Sort by original score
             cleanedResults.sort((a, b) => (b.score || 0) - (a.score || 0));
             
-            this.toastr.error('Rerank失败，使用原始搜索结果。');
+            const detail = error instanceof Error && error.message ? `：${error.message}` : '';
+            this.toastr.error(`Rerank失败，已使用原始搜索结果${detail}`);
             return cleanedResults;
         }
     }
@@ -115,22 +118,29 @@ export class RerankService {
      * @private
      */
     async _sendRerankRequest(config, requestBody) {
-        const response = await fetch(config.url, {
+        const headers = this.getRequestHeaders ? this.getRequestHeaders() : {};
+        headers['Content-Type'] = 'application/json';
+
+        const response = await fetch('/api/plugins/vectors-enhanced/rerank', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${config.apiKey}`
-            },
-            body: JSON.stringify(requestBody)
+            headers,
+            body: JSON.stringify({
+                url: config.url,
+                secretKey: config.secretKey,
+                secretId: config.secretId,
+                ...requestBody
+            })
         });
 
         if (!response.ok) {
-            throw new Error(`Rerank API failed: ${response.statusText}`);
+            const errorData = await response.json().catch(() => null);
+            const message = errorData?.error?.message || response.statusText || 'Unknown error';
+            const upstreamStatus = errorData?.error?.upstreamStatus;
+            const upstreamSuffix = upstreamStatus ? ` (upstream ${upstreamStatus})` : '';
+            throw new Error(`Rerank proxy failed: HTTP ${response.status}${upstreamSuffix} - ${message}`);
         }
 
-        const data = await response.json();
-        console.debug('Vectors: Rerank API response:', data);
-        return data;
+        return response.json();
     }
 
     /**

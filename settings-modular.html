@@ -257,14 +257,26 @@
                        placeholder="https://api.openai.com/v1"
                        style="width: 100%;" />
 
-                <label for="memory_openai_api_key" style="margin-top: 5px;">
-                  <small>API Key:</small>
+                <label for="memory_openai_secret_id" style="margin-top: 5px;">
+                  <small>SillyTavern Custom Key:</small>
                 </label>
-                <input id="memory_openai_api_key"
-                       type="password"
-                       class="text_pole"
-                       placeholder="sk-..."
-                       style="width: 100%;" />
+                <div style="display: flex; gap: 5px; align-items: center;">
+                  <select id="memory_openai_secret_id" class="text_pole" style="flex: 1;">
+                    <option value="">-- 使用当前 active Custom Key --</option>
+                  </select>
+                  <button id="memory_openai_refresh_secrets"
+                          type="button"
+                          class="menu_button menu_button_icon"
+                          title="刷新密钥列表">
+                    <i class="fa-solid fa-sync"></i>
+                  </button>
+                  <button type="button"
+                          class="menu_button menu_button_icon manage-api-keys"
+                          data-key="api_key_custom"
+                          title="管理 SillyTavern Custom Keys">
+                    <i class="fa-solid fa-key"></i>
+                  </button>
+                </div>
 
                 <label for="memory_openai_model" style="margin-top: 5px;">
                   <small>模型名称:</small>
@@ -291,7 +303,7 @@
                 </div>
 
                 <small class="hint" style="display: block; margin-top: 10px; color: #888;">
-                  提示：请求将通过酒馆后端代理转发，避免CORS跨域问题
+                  提示：请求由酒馆后端使用所选 Custom Key 转发；插件不会创建或切换 active Key
                 </small>
               </div>
 
@@ -789,8 +801,27 @@
           <label for="vectors_enhanced_rerank_url">Rerank API URL</label>
           <input id="vectors_enhanced_rerank_url" class="text_pole" type="text" placeholder="例如：https://api.siliconflow.cn/v1/rerank">
 
-          <label for="vectors_enhanced_rerank_apiKey">Rerank API Key</label>
-          <input id="vectors_enhanced_rerank_apiKey" class="text_pole" type="password" placeholder="输入您的API Key">
+          <label for="vectors_enhanced_rerank_secret_key">Rerank 密钥类型</label>
+          <select id="vectors_enhanced_rerank_secret_key" class="text_pole">
+            <option value="api_key_vllm">vLLM（默认，与向量化共用）</option>
+            <option value="api_key_generic">Generic（独立 Rerank Key）</option>
+            <option value="api_key_siliconflow">SiliconFlow</option>
+            <option value="api_key_cohere">Cohere</option>
+          </select>
+
+          <label for="vectors_enhanced_rerank_secret_id">Rerank API Key</label>
+          <div class="flex-container">
+            <select id="vectors_enhanced_rerank_secret_id" class="text_pole flex1">
+              <option value="">-- 使用该类型的 active Key --</option>
+            </select>
+            <button id="vectors_enhanced_rerank_refresh_secrets" type="button" class="menu_button menu_button_icon" title="刷新密钥列表">
+              <i class="fa-solid fa-sync"></i>
+            </button>
+            <button id="vectors_enhanced_rerank_manage_secrets" type="button" class="menu_button menu_button_icon manage-api-keys" data-key="api_key_vllm" title="管理此类型的 SillyTavern Keys">
+              <i class="fa-solid fa-key"></i>
+            </button>
+          </div>
+          <small class="hint">Key 保存在 SillyTavern 服务端；空选项复用 active Key。</small>
 
           <label for="vectors_enhanced_rerank_model">Rerank 模型</label>
           <input id="vectors_enhanced_rerank_model" class="text_pole" type="text" placeholder="例如：Pro/BAAI/bge-reranker-v2-m3">

@@ -14,7 +14,8 @@ export class RerankConfig {
         return {
             enabled: this.settings.rerank_enabled || false,
             url: this.settings.rerank_url || 'https://api.siliconflow.cn/v1/rerank',
-            apiKey: this.settings.rerank_apiKey || '',
+            secretKey: this.settings.rerank_secret_key || 'api_key_vllm',
+            secretId: this.settings.rerank_secret_id || '',
             model: this.settings.rerank_model || 'Pro/BAAI/bge-reranker-v2-m3',
             top_n: this.settings.rerank_top_n || 20,
             hybrid_alpha: this.settings.rerank_hybrid_alpha || 0.7,
@@ -35,8 +36,11 @@ export class RerankConfig {
         if (updates.url !== undefined) {
             this.settings.rerank_url = updates.url;
         }
-        if (updates.apiKey !== undefined) {
-            this.settings.rerank_apiKey = updates.apiKey;
+        if (updates.secretKey !== undefined) {
+            this.settings.rerank_secret_key = updates.secretKey;
+        }
+        if (updates.secretId !== undefined) {
+            this.settings.rerank_secret_id = updates.secretId;
         }
         if (updates.model !== undefined) {
             this.settings.rerank_model = updates.model;
@@ -70,8 +74,8 @@ export class RerankConfig {
             if (!config.url) {
                 errors.push('Rerank URL is required');
             }
-            if (!config.apiKey) {
-                errors.push('Rerank API key is required');
+            if (!config.secretKey) {
+                errors.push('Rerank secret type is required');
             }
             if (!config.model) {
                 errors.push('Rerank model is required');
@@ -98,7 +102,8 @@ export class RerankConfig {
         return {
             enabled: false,
             url: 'https://api.siliconflow.cn/v1/rerank',
-            apiKey: '',
+            secretKey: 'api_key_vllm',
+            secretId: '',
             model: 'Pro/BAAI/bge-reranker-v2-m3',
             top_n: 20,
             hybrid_alpha: 0.7,

@@ -8,6 +8,7 @@ import { updateWorldInfoList as updateSillyTavernWorldInfoList, loadWorldInfo, M
 import { updateWorldInfoList as updatePluginWorldInfoList } from './WorldInfoList.js';
 import { getContext, extension_settings } from '../../../../../../extensions.js';
 import { chat_metadata, saveChatDebounced } from '../../../../../../../script.js';
+import { CUSTOM_SECRET_KEY, formatSecretReference, getSecretReferences, refreshSecretReferences } from '../../infrastructure/SecretReferences.js';
 
 
 // Using preset format - prompts removed
@@ -51,7 +52,7 @@ const defaultMemorySettings = {
     openai_compatible: {
         url: '',
         model: '',
-        apiKey: ''  // 添加API密钥字段
+        secretId: ''
         // proxyMode 已移除 - 现在始终使用酒馆后端代理
     },
     // prompts removed - using preset format
@@ -170,9 +171,11 @@ export class MemoryUI {
 
         // Prompt buttons removed - using preset format
 
-        // Save config on input changes (包括API密钥)
-        $('#memory_openai_url, #memory_openai_api_key, #memory_openai_model, #memory_openai_custom_model, #memory_google_openai_api_key, #memory_google_openai_model, #memory_google_custom_model, #memory_summary_format, #memory_detail_level, #memory_max_tokens, #memory_auto_create_world_book, #memory_hide_floors_after_summary, #memory_disable_world_info_after_vectorize')
+        // Save config on input changes
+        $('#memory_openai_url, #memory_openai_secret_id, #memory_openai_model, #memory_openai_custom_model, #memory_google_openai_api_key, #memory_google_openai_model, #memory_google_custom_model, #memory_summary_format, #memory_detail_level, #memory_max_tokens, #memory_auto_create_world_book, #memory_hide_floors_after_summary, #memory_disable_world_info_after_vectorize')
             .off('change input').on('change input', () => this.saveApiConfig());
+
+        $('#memory_openai_refresh_secrets').off('click').on('click', () => this.refreshOpenAISecretOptions(true));
 
         // 自定义模型复选框控制
         $('#memory_openai_custom_model_enabled').off('change').on('change', (e) => {
@@ -424,7 +427,7 @@ export class MemoryUI {
             console.log('[MemoryUI] API配置:', {
                 source: apiSource,
                 config: apiConfig,
-                hasApiKey: !!apiConfig.apiKey
+                hasSecretSelection: apiSource === 'openai_compatible' ? !!apiConfig.secretId : !!apiConfig.apiKey
             });
             
             // Get summary format and replace {{length}} macro
@@ -897,7 +900,7 @@ export class MemoryUI {
                     : ($('#memory_openai_model').val() || '');
                 return {
                     url: $('#memory_openai_url').val(),
-                    apiKey: $('#memory_openai_api_key').val(),
+                    secretId: $('#memory_openai_secret_id').val() || '',
                     model: model
                 };
             }
@@ -939,7 +942,7 @@ export class MemoryUI {
                 model: $('#memory_openai_model').val() || '',
                 customModel: $('#memory_openai_custom_model').val() || '',
                 useCustomModel: $('#memory_openai_custom_model_enabled').prop('checked'),
-                apiKey: $('#memory_openai_api_key').val() || ''
+                secretId: $('#memory_openai_secret_id').val() || ''
             },
             google_openai: {
                 model: $('#memory_google_openai_model').val() || '',
@@ -1005,8 +1008,12 @@ export class MemoryUI {
         $('#memory_max_tokens').val(config.maxTokens || defaultMemorySettings.maxTokens);
         $('#memory_auto_create_world_book').prop('checked', config.autoCreateWorldBook || false);
         $('#memory_openai_url').val(config.openai_compatible?.url || '');
-        $('#memory_openai_api_key').val(config.openai_compatible?.apiKey || '');  // 从设置加载API密钥
         $('#memory_google_openai_api_key').val(config.google_openai?.apiKey || '');  // 从设置加载API密钥
+        await this.refreshOpenAISecretOptions(false, config.openai_compatible?.secretId || '');
+
+        if (config.openai_compatible?.apiKey) {
+            this.toastr?.warning('检测到旧版总结明文 Key：它已停止使用。请先将它保存到 SillyTavern Custom Keys，再在此选择。');
+        }
 
         // 恢复模型选择（如果有保存的值，添加到下拉列表并选中）
         const savedOpenAIModel = config.openai_compatible?.model || '';
@@ -1691,12 +1698,12 @@ export class MemoryUI {
                 apiSource,
                 apiConfig,
                 summaryFormat: summaryFormat.substring(0, 100) + '...',
-                hasApiKey: !!apiConfig.apiKey,
+                hasSecretSelection: apiSource === 'openai_compatible' ? !!apiConfig.secretId : !!apiConfig.apiKey,
                 apiUrl: apiConfig.url || 'N/A'
             });
             
             // 检查API配置
-            if (!apiConfig.apiKey && apiSource !== 'main_api') {
+            if (apiSource === 'google_openai' && !apiConfig.apiKey) {
                 console.error('[MemoryUI] API密钥未设置');
                 this.toastr?.error('请先配置API密钥');
                 return;
@@ -1879,7 +1886,7 @@ export class MemoryUI {
      */
     async refreshOpenAIModels() {
         const url = $('#memory_openai_url').val();
-        const apiKey = $('#memory_openai_api_key').val();
+        const secretId = $('#memory_openai_secret_id').val() || '';
         const $select = $('#memory_openai_model');
         const $button = $('#memory_openai_refresh_models');
         const currentValue = $select.val();
@@ -1895,7 +1902,7 @@ export class MemoryUI {
             $button.find('i').addClass('fa-spin');
             $select.prop('disabled', true);
 
-            const models = await this.memoryService.fetchOpenAICompatibleModels(url, apiKey);
+            const models = await this.memoryService.fetchOpenAICompatibleModels(url, secretId);
 
             // 更新下拉列表
             $select.empty();
@@ -1928,6 +1935,32 @@ export class MemoryUI {
             $button.prop('disabled', false);
             $button.find('i').removeClass('fa-spin');
             $select.prop('disabled', false);
+        }
+    }
+
+    async refreshOpenAISecretOptions(showNotification = false, selectedId = null) {
+        const select = $('#memory_openai_secret_id');
+        const targetId = selectedId ?? select.val() ?? this.settings?.memory?.openai_compatible?.secretId ?? '';
+
+        try {
+            await refreshSecretReferences();
+            const secrets = getSecretReferences(CUSTOM_SECRET_KEY);
+            select.empty().append(new Option('-- 使用当前 active Custom Key --', ''));
+            for (const secret of secrets) {
+                select.append(new Option(formatSecretReference(secret), secret.id));
+            }
+            if (targetId && !secrets.some(secret => secret.id === targetId)) {
+                select.append(new Option(`[已保存但当前不可用] ${targetId}`, targetId));
+            }
+            select.val(targetId);
+            if (showNotification) {
+                this.toastr?.success('Custom Key 列表已刷新');
+            }
+        } catch (error) {
+            console.error('[MemoryUI] 读取 SillyTavern Custom Keys 失败:', error);
+            if (showNotification) {
+                this.toastr?.error('无法读取 SillyTavern 密钥列表，请确认已升级到 1.18.0');
+            }
         }
     }
 
@@ -2026,9 +2059,10 @@ export class MemoryUI {
         $('#memory_api_source').off('change');
         $('#memory_vectorize_summary').off('click');
         $('#memory_openai_refresh_models').off('click');
+        $('#memory_openai_refresh_secrets').off('click');
         $('#memory_google_refresh_models').off('click');
         // Prompt buttons removed
-        $('#memory_openai_url, #memory_openai_api_key, #memory_openai_model, #memory_google_openai_api_key, #memory_google_openai_model, #memory_summary_format, #memory_detail_level, #memory_max_tokens').off('change');
+        $('#memory_openai_url, #memory_openai_secret_id, #memory_openai_model, #memory_google_openai_api_key, #memory_google_openai_model, #memory_summary_format, #memory_detail_level, #memory_max_tokens').off('change');
 
         // Unsubscribe from events
         if (this.eventBus) {

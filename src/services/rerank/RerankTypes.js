@@ -3,7 +3,8 @@
  * @typedef {Object} RerankConfig
  * @property {boolean} enabled - Whether rerank is enabled
  * @property {string} url - Rerank API URL
- * @property {string} apiKey - API key for authentication
+ * @property {string} secretKey - SillyTavern secret type
+ * @property {string} secretId - Optional SillyTavern secret UUID; active key when empty
  * @property {string} model - Model to use for reranking
  * @property {number} top_n - Number of top results to return
  * @property {number} hybrid_alpha - Weight for hybrid scoring (0-1)

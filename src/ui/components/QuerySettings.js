@@ -8,6 +8,8 @@
  * - Rerank notifications
  */
 
+import { formatSecretReference, getSecretReferences, refreshSecretReferences } from '../../infrastructure/SecretReferences.js';
+
 export class QuerySettings {
     constructor(dependencies = {}) {
         this.settings = dependencies.settings;
@@ -27,7 +29,8 @@ export class QuerySettings {
             'rerank_enabled',
             'rerank_success_notify',
             'rerank_url',
-            'rerank_apiKey',
+            'rerank_secret_key',
+            'rerank_secret_id',
             'rerank_model',
             'rerank_top_n',
             'rerank_hybrid_alpha'
@@ -48,6 +51,7 @@ export class QuerySettings {
         try {
             this.bindEventListeners();
             this.loadCurrentSettings();
+            await this.refreshRerankSecretOptions();
             // loadCurrentSettings() now calls updateRerankVisibility(), so no need to call it again
             this.initialized = true;
             console.log('QuerySettings: Initialized successfully');
@@ -71,9 +75,21 @@ export class QuerySettings {
             this.handleFieldChange('rerank_url', e.target.value);
         });
 
-        $('#vectors_enhanced_rerank_apiKey').on('input', (e) => {
-            this.handleFieldChange('rerank_apiKey', e.target.value);
+        $('#vectors_enhanced_rerank_secret_key').on('change', (e) => {
+            delete this.settings.rerank_apiKey;
+            delete this.configManager?.getAll()?.rerank_apiKey;
+            this.handleFieldChange('rerank_secret_key', e.target.value);
+            this.handleFieldChange('rerank_secret_id', '');
+            this.populateRerankSecretOptions();
         });
+
+        $('#vectors_enhanced_rerank_secret_id').on('change', (e) => {
+            delete this.settings.rerank_apiKey;
+            delete this.configManager?.getAll()?.rerank_apiKey;
+            this.handleFieldChange('rerank_secret_id', e.target.value);
+        });
+
+        $('#vectors_enhanced_rerank_refresh_secrets').on('click', () => this.refreshRerankSecretOptions(true));
 
         $('#vectors_enhanced_rerank_model').on('input', (e) => {
             this.handleFieldChange('rerank_model', e.target.value);
@@ -181,7 +197,10 @@ export class QuerySettings {
         // Enable/disable rerank configuration fields
         const configFields = [
             '#vectors_enhanced_rerank_url',
-            '#vectors_enhanced_rerank_apiKey', 
+            '#vectors_enhanced_rerank_secret_key',
+            '#vectors_enhanced_rerank_secret_id',
+            '#vectors_enhanced_rerank_refresh_secrets',
+            '#vectors_enhanced_rerank_manage_secrets',
             '#vectors_enhanced_rerank_model',
             '#vectors_enhanced_rerank_top_n',
             '#vectors_enhanced_rerank_hybrid_alpha',
@@ -203,6 +222,35 @@ export class QuerySettings {
         });
         
         console.log(`QuerySettings: Updated rerank visibility (enabled: ${rerankEnabled})`);
+    }
+
+    async refreshRerankSecretOptions(showNotification = false) {
+        try {
+            await refreshSecretReferences();
+            this.populateRerankSecretOptions();
+            if (showNotification) {
+                this.toastr.success('Rerank 密钥列表已刷新');
+            }
+        } catch (error) {
+            console.error('QuerySettings: Failed to refresh SillyTavern secrets:', error);
+            this.toastr.error('无法读取 SillyTavern 密钥列表，请确认已升级到 1.18.0');
+        }
+    }
+
+    populateRerankSecretOptions() {
+        const secretKey = $('#vectors_enhanced_rerank_secret_key').val() || 'api_key_vllm';
+        const selectedId = this.settings.rerank_secret_id || '';
+        const select = $('#vectors_enhanced_rerank_secret_id');
+
+        select.empty().append(new Option('-- 使用该类型的 active Key --', ''));
+        for (const secret of getSecretReferences(secretKey)) {
+            select.append(new Option(formatSecretReference(secret), secret.id));
+        }
+        if (selectedId && !getSecretReferences(secretKey).some(secret => secret.id === selectedId)) {
+            select.append(new Option(`[已保存但当前不可用] ${selectedId}`, selectedId));
+        }
+        select.val(selectedId);
+        $('#vectors_enhanced_rerank_manage_secrets').attr('data-key', secretKey).data('key', secretKey);
     }
 
 
@@ -354,8 +402,8 @@ export class QuerySettings {
             isValid = false;
         }
 
-        if (!this.settings.rerank_apiKey || this.settings.rerank_apiKey.trim() === '') {
-            errors.push('Rerank API Key is required');
+        if (!this.settings.rerank_secret_key || this.settings.rerank_secret_key.trim() === '') {
+            errors.push('Rerank secret type is required');
             isValid = false;
         }
 
@@ -468,7 +516,8 @@ export class QuerySettings {
             rerank_enabled: this.settings.rerank_enabled,
             rerank_success_notify: this.settings.rerank_success_notify,
             rerank_url: this.settings.rerank_url,
-            rerank_apiKey: this.settings.rerank_apiKey ? '***' : '', // Don't expose the actual key
+            rerank_secret_key: this.settings.rerank_secret_key,
+            rerank_secret_id: this.settings.rerank_secret_id,
             rerank_model: this.settings.rerank_model,
             rerank_top_n: this.settings.rerank_top_n,
             rerank_hybrid_alpha: this.settings.rerank_hybrid_alpha
@@ -504,7 +553,8 @@ export class QuerySettings {
             rerank_enabled: false,
             rerank_success_notify: true,
             rerank_url: '',
-            rerank_apiKey: '',
+            rerank_secret_key: 'api_key_vllm',
+            rerank_secret_id: '',
             rerank_model: '',
             rerank_top_n: 10,
             rerank_hybrid_alpha: 0.7

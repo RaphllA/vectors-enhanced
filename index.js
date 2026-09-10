@@ -145,7 +145,8 @@ const settings = {
   // Rerank settings
   rerank_enabled: false,
   rerank_url: 'https://api.siliconflow.cn/v1/rerank',
-  rerank_apiKey: '',
+  rerank_secret_key: 'api_key_vllm',
+  rerank_secret_id: '',
   rerank_model: 'Pro/BAAI/bge-reranker-v2-m3',
   rerank_top_n: 20,
   rerank_hybrid_alpha: 0.7, // Rerank score weight
@@ -266,7 +267,8 @@ const settings = {
     },
     openai_compatible: {
       url: '',
-      model: ''
+      model: '',
+      secretId: ''
     },
     summaryFormat: `总结应当遵循以下原则：
 - 按时间顺序或逻辑顺序组织信息
@@ -3212,6 +3214,12 @@ jQuery(async () => {
 
     // 使用独立的设置键避免冲突
     const SETTINGS_KEY = 'vectors_enhanced';
+    const persistedSettings = extension_settings[SETTINGS_KEY];
+    const needsRerankSecretMigration = Boolean(
+      persistedSettings &&
+      persistedSettings.rerank_secret_key === undefined &&
+      persistedSettings.rerank_apiKey
+    );
 
     if (!extension_settings[SETTINGS_KEY]) {
       extension_settings[SETTINGS_KEY] = settings;
@@ -3240,6 +3248,16 @@ jQuery(async () => {
   // 确保rerank成功通知设置存在
   if (settings.rerank_success_notify === undefined) {
     settings.rerank_success_notify = true;
+  }
+  if (settings.rerank_secret_key === undefined) {
+    settings.rerank_secret_key = 'api_key_vllm';
+  }
+  if (settings.rerank_secret_id === undefined) {
+    settings.rerank_secret_id = '';
+  }
+  if (needsRerankSecretMigration && settings.rerank_enabled) {
+    settings.rerank_enabled = false;
+    toastr.warning('Rerank 已暂时关闭：请先把旧 Key 保存到 SillyTavern，并在 Rerank 设置中选择正确的服务端密钥。');
   }
 
   // 确保实验性功能设置存在
@@ -3472,7 +3490,8 @@ jQuery(async () => {
   // 创建 Rerank 服务实例
   console.log('Vectors Enhanced: Creating RerankService...');
   rerankService = new RerankService(settings, {
-    toastr: toastr
+    toastr: toastr,
+    getRequestHeaders
   });
 
   // 暴露到全局以便测试（仅在开发环境）
